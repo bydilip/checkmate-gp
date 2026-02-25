@@ -157,6 +157,7 @@ body::after{content:'';position:fixed;top:-100px;left:50%;transform:translateX(-
   <button class="replay-exit" onclick="exitReplay()">✕ Exit Replay</button>
 </div>
 <input type="file" id="pgn-file-input" accept="*/*" style="display:none" onchange="loadPGNFromFile(event)">
+<input type="file" id="scan-img-input" accept="image/*" capture="environment" style="display:none" onchange="handleScanImage(event)">
 <div class="controls" id="game-controls">
   <button class="btn" onclick="undoMove()"><span class="be">↩</span>Undo</button>
   <button class="btn primary" onclick="newGame()"><span class="be">🏁</span>Race</button>
@@ -236,7 +237,7 @@ let capW=[],capB=[],cast={wK:1,wQ:1,bK:1,bQ:1},epT=null,pendPromo=null;
 let gMode='vsAI',aiElo=1000,wT=600,bT=600,clk=null,undo=[],mc=0,fm=0;
 
 // ═══ CLOCK ═══
-function startClk(){clearInterval(clk);clk=setInterval(()=>{if(gameOver||aiOn)return;if(turn==='w'){wT=Math.max(0,wT-1);if(!wT)endG('Time','b');}else{bT=Math.max(0,bT-1);if(!bT)endG('Time','w');}rClk();},1000);}
+function startClk(){clearInterval(clk);clk=setInterval(()=>{if(gameOver||replayMode)return;if(turn==='w'){wT=Math.max(0,wT-1);if(!wT)endG('Time','b');}else{bT=Math.max(0,bT-1);if(!bT)endG('Time','w');}rClk();},1000);}
 const fmt=s=>`${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
 function rClk(){const w=document.getElementById('clock-white'),b=document.getElementById('clock-black');w.textContent=fmt(wT);b.textContent=fmt(bT);w.classList.toggle('urgent',wT<=30&&turn==='w');b.classList.toggle('urgent',bT<=30&&turn==='b');}
 
@@ -414,11 +415,100 @@ function showPGNUpload(){
   document.getElementById('modal-icon').textContent='📋';
   document.getElementById('modal-title').textContent='PGN REPLAY';
   document.getElementById('modal-sub').textContent='Load a game to replay';
-  document.getElementById('modal-btns').innerHTML='<textarea class="pgn-textarea" id="pgn-text" placeholder="Paste PGN text here..."></textarea><button class="modal-btn primary" onclick="loadPGNFromText()">Load PGN</button><div style="text-align:center;margin:8px 0"><span style="color:var(--silver-dim);font-size:11px;letter-spacing:2px">OR</span></div><label class="pgn-file-btn" onclick="document.getElementById(\'pgn-file-input\').click()">📁 Upload .pgn file</label><button class="modal-btn secondary" onclick="closeModal()" style="margin-top:8px">Cancel</button>';
+  document.getElementById('modal-btns').innerHTML=`
+    <textarea class="pgn-textarea" id="pgn-text" placeholder="Paste PGN text here..."></textarea>
+    <button class="modal-btn primary" onclick="loadPGNFromText()">Load PGN</button>
+    <div style="text-align:center;margin:8px 0"><span style="color:var(--silver-dim);font-size:11px;letter-spacing:2px">OR</span></div>
+    <button class="modal-btn secondary" onclick="triggerScan()" style="font-size:15px;letter-spacing:2px">📸 Scan Score Sheet</button>
+    <div style="text-align:center;margin:8px 0"><span style="color:var(--silver-dim);font-size:11px;letter-spacing:2px">OR</span></div>
+    <label class="pgn-file-btn" onclick="document.getElementById('pgn-file-input').click()">📁 Upload .pgn file</label>
+    <button class="modal-btn secondary" onclick="closeModal()" style="margin-top:8px">Cancel</button>`;
   document.getElementById('modal-overlay').style.display='flex';
 }
 function loadPGNFromText(){const t=document.getElementById('pgn-text').value.trim();if(t)enterReplay(t);}
 function loadPGNFromFile(ev){const file=ev.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(e){enterReplay(e.target.result);};reader.readAsText(file);}
+
+// ═══ SCAN SCORE SHEET ═══
+let _lastScanDataUrl=null;
+
+function triggerScan(){
+  const key=localStorage.getItem('openai_api_key');
+  if(!key)promptApiKey();
+  else document.getElementById('scan-img-input').click();
+}
+
+function promptApiKey(errorMsg){
+  document.getElementById('modal-btns').innerHTML=`
+    <div class="setting-group">
+      <div class="setting-label">OpenAI API Key</div>
+      <input id="api-key-input" type="password" placeholder="sk-..." style="width:100%;background:var(--carbon);border:1px solid var(--carbon-light);border-radius:8px;color:var(--silver);font-family:monospace;font-size:12px;padding:10px;box-sizing:border-box;margin-bottom:8px">
+      ${errorMsg?`<div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;color:#FF4444;letter-spacing:1px;text-align:left;margin-bottom:6px">${errorMsg}</div>`:''}
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--silver-dim);letter-spacing:1px;text-align:left">Saved in this browser only. Used for handwriting recognition.</div>
+    </div>
+    <button class="modal-btn primary" onclick="saveApiKey()">Save & Scan</button>
+    <button class="modal-btn secondary" onclick="showPGNUpload()" style="margin-top:6px">Back</button>`;
+}
+
+function saveApiKey(){
+  const k=(document.getElementById('api-key-input')||{}).value||'';
+  if(!k.trim())return;
+  localStorage.setItem('openai_api_key',k.trim());
+  // If we have a previous image, re-scan it directly; otherwise open file picker
+  if(_lastScanDataUrl)scanWithOpenAI(_lastScanDataUrl);
+  else document.getElementById('scan-img-input').click();
+}
+
+function handleScanImage(ev){
+  const file=ev.target.files[0];
+  ev.target.value='';
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    _lastScanDataUrl=e.target.result;
+    scanWithOpenAI(_lastScanDataUrl);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function scanWithOpenAI(dataUrl){
+  const ta=document.getElementById('pgn-text');
+  if(ta){ta.value='';ta.placeholder='Scanning score sheet...';}
+  document.getElementById('modal-icon').textContent='⏳';
+
+  const key=localStorage.getItem('openai_api_key');
+  const prompt='This is a chess score sheet with handwritten moves. Extract every move you can read and return them as PGN only. If you can read player names write [White "Name"] and [Black "Name"] headers first, then the moves like: 1. e4 e5 2. Nf3 Nc6. Use standard algebraic notation. If a move is unclear make your best guess. Output only the PGN text, no explanation.';
+
+  try{
+    const res=await fetch('https://api.openai.com/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({
+        model:'gpt-4o-mini',
+        max_tokens:1024,
+        messages:[{role:'user',content:[
+          {type:'image_url',image_url:{url:dataUrl}},
+          {type:'text',text:prompt}
+        ]}]
+      })
+    });
+    if(!res.ok){const e=await res.json();throw new Error(e.error?.message||res.statusText);}
+    const data=await res.json();
+    const pgn=(data.choices?.[0]?.message?.content||'').trim().replace(/^```[^\n]*\n?/,'').replace(/```$/,'').trim();
+    showPGNUpload();
+    const taFilled=document.getElementById('pgn-text');
+    if(taFilled)taFilled.value=pgn;
+    document.getElementById('modal-icon').textContent='✅';
+    document.getElementById('modal-sub').textContent='Review moves then tap Load PGN';
+  }catch(err){
+    if(ta){ta.value='';ta.placeholder='Paste PGN text here...';}
+    document.getElementById('modal-icon').textContent='📋';
+    const sub=document.getElementById('modal-sub');
+    if(sub){sub.textContent='Scan failed — check key or retry';sub.style.color='#FF4444';}
+    const isAuthErr=err.message&&(err.message.includes('401')||err.message.includes('Incorrect API key')||err.message.includes('invalid_api_key'));
+    if(isAuthErr){localStorage.removeItem('openai_api_key');promptApiKey('Invalid API key — paste a new one and try again');}
+    console.error('Scan error:',err.message);
+  }
+}
 
 function parsePGN(pgn){
   const headers={};const hRe=/\[(\w+)\s+"([^"]*)"\]/g;let hm;while((hm=hRe.exec(pgn))!==null)headers[hm[1]]=hm[2];
@@ -481,6 +571,8 @@ function buildReplayPositions(moves){
 
 function enterReplay(pgnText){
   closeModal();
+  capW=[];capB=[];rCap();
+  clearInterval(clk);wT=600;bT=600;rClk();
   const pgn=parsePGN(pgnText);
   replayHeaders=pgn.headers;
   replayMoves=pgn.moves;
