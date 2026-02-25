@@ -336,6 +336,7 @@ function doMove(m,pr=null){
 }
 
 function undoMove(){if(!undo.length||aiOn)return;if(gMode==='vsAI'&&undo.length>=2){undo.pop();const s=undo.pop();board=s.board;turn=s.turn;lastMv=s.lastMv;cast=s.cast;epT=s.epT;capW=s.capW;capB=s.capB;hist=s.hist;wT=s.wT;bT=s.bT;mc=s.mc;fm=s.fm;}else{const s=undo.pop();board=s.board;turn=s.turn;lastMv=s.lastMv;cast=s.cast;epT=s.epT;capW=s.capW;capB=s.capB;hist=s.hist;wT=s.wT;bT=s.bT;mc=s.mc;fm=s.fm;}sel=null;vMoves=[];gameOver=false;rAll();}
+function undoFromEnd(){if(!undo.length)return;closeModal();gameOver=false;undoMove();startClk();}
 
 function mNote(m,piece,cap,pr){const F='abcdefgh',R='87654321',[fr,fc]=m.from,[tr,tc]=m.to,t=piece[1];if(m.castle)return m.castle==='K'?'O-O':'O-O-O';let n='';if(t!=='P')n+=t;if(cap||m.enPassant){if(t==='P')n+=F[fc];n+='x';}n+=F[tc]+R[tr];if(pr)n+='='+pr;return n;}
 
@@ -345,7 +346,7 @@ if(reason==='Checkmate'){icon=winner==='w'?'🏆':'🏎️';title='CHECKMATE!';s
 else if(reason==='Stalemate'){icon='🤝';title='STALEMATE';sub='Race ends in a draw';}
 else{icon='⏱';title='TIME OUT!';sub=(winner==='w'?'White':'Black')+' wins on time';}
 document.getElementById('status-bar').innerHTML=`<div class="status-badge">${title}</div>`;
-showModal(icon,title,sub,[{label:'🏁 New Race',primary:true,action:'newGame()'},{label:'Close',action:'closeModal()'}]);}
+showModal(icon,title,sub,[{label:'🏁 New Race',primary:true,action:'newGame()'},{label:'↩ Undo Move',action:'undoFromEnd()'},{label:'Close',action:'closeModal()'}]);}
 
 function showPromo(co){document.getElementById('modal-icon').textContent='👑';document.getElementById('modal-title').textContent='PIT STOP';document.getElementById('modal-sub').textContent='Promote your pawn';document.getElementById('modal-btns').innerHTML='<div class="promo-pieces">'+['Q','R','B','N'].map(t=>`<div class="promo-piece" onclick="doPr('${t}')">${SVG[co+t]}</div>`).join('')+'</div>';document.getElementById('modal-overlay').style.display='flex';}
 function doPr(t){closeModal();if(pendPromo){doMove(pendPromo,t);pendPromo=null;}}
