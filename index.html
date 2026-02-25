@@ -127,7 +127,7 @@ body::after{content:'';position:fixed;top:-100px;left:50%;transform:translateX(-
 <div class="app">
 <div class="header">
   <div class="logo-area"><div class="shield"></div><div><div class="logo-text">CHECKMATE GP</div><div class="logo-sub">Racing Edition</div></div></div>
-  <div style="display:flex;gap:6px"><div class="btn-icon" onclick="showPGNUpload()">📋</div><div class="btn-icon" onclick="showSettings()">⚙</div></div>
+  <div style="display:flex;gap:6px"><div class="btn-icon" onclick="showPGNUpload()">📡</div><div class="btn-icon" onclick="showSettings()">⚙</div></div>
 </div>
 <div class="engine-status loading" id="engine-status"><span class="edot"></span>Loading Stockfish Engine...</div>
 <div class="player-panel black-panel" id="panel-black">
@@ -412,17 +412,17 @@ function flipBoard(){flipped=!flipped;rBoard();}
 let replayMode=false,replayPositions=[],replayMoves=[],replayIdx=0,replayHeaders={},autoPlayTimer=null;
 
 function showPGNUpload(){
-  document.getElementById('modal-icon').textContent='📋';
-  document.getElementById('modal-title').textContent='PGN REPLAY';
-  document.getElementById('modal-sub').textContent='Load a game to replay';
+  document.getElementById('modal-icon').textContent='📡';
+  document.getElementById('modal-title').textContent='TELEMETRY UPLOAD';
+  document.getElementById('modal-sub').textContent='Feed race data to the system';
   document.getElementById('modal-btns').innerHTML=`
-    <textarea class="pgn-textarea" id="pgn-text" placeholder="Paste PGN text here..."></textarea>
-    <button class="modal-btn primary" onclick="loadPGNFromText()">Load PGN</button>
-    <div style="text-align:center;margin:8px 0"><span style="color:var(--silver-dim);font-size:11px;letter-spacing:2px">OR</span></div>
-    <button class="modal-btn secondary" onclick="triggerScan()" style="font-size:15px;letter-spacing:2px">📸 Scan Score Sheet</button>
-    <div style="text-align:center;margin:8px 0"><span style="color:var(--silver-dim);font-size:11px;letter-spacing:2px">OR</span></div>
-    <label class="pgn-file-btn" onclick="document.getElementById('pgn-file-input').click()">📁 Upload .pgn file</label>
-    <button class="modal-btn secondary" onclick="closeModal()" style="margin-top:8px">Cancel</button>`;
+    <textarea class="pgn-textarea" id="pgn-text" placeholder="Paste telemetry string here..."></textarea>
+    <button class="modal-btn primary" onclick="loadPGNFromText()">⚡ INJECT DATA</button>
+    <div style="text-align:center;margin:8px 0"><span style="color:var(--silver-dim);font-size:11px;letter-spacing:2px">— OR —</span></div>
+    <button class="modal-btn secondary" onclick="triggerScan()" style="font-size:15px;letter-spacing:2px">📸 PIT SCAN</button>
+    <div style="text-align:center;margin:8px 0"><span style="color:var(--silver-dim);font-size:11px;letter-spacing:2px">— OR —</span></div>
+    <label class="pgn-file-btn" onclick="document.getElementById('pgn-file-input').click()">📁 UPLOAD RACE FILE</label>
+    <button class="modal-btn secondary" onclick="closeModal()" style="margin-top:8px">✕ ABORT</button>`;
   document.getElementById('modal-overlay').style.display='flex';
 }
 function loadPGNFromText(){const t=document.getElementById('pgn-text').value.trim();if(t)enterReplay(t);}
@@ -445,7 +445,7 @@ function promptApiKey(errorMsg){
       ${errorMsg?`<div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;color:#FF4444;letter-spacing:1px;text-align:left;margin-bottom:6px">${errorMsg}</div>`:''}
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--silver-dim);letter-spacing:1px;text-align:left">Saved in this browser only. Used for handwriting recognition.</div>
     </div>
-    <button class="modal-btn primary" onclick="saveApiKey()">Save & Scan</button>
+    <button class="modal-btn primary" onclick="saveApiKey()">📥 LOG TO ARCHIVE</button>
     <button class="modal-btn secondary" onclick="showPGNUpload()" style="margin-top:6px">Back</button>`;
 }
 
@@ -498,10 +498,10 @@ async function scanWithOpenAI(dataUrl){
     const taFilled=document.getElementById('pgn-text');
     if(taFilled)taFilled.value=pgn;
     document.getElementById('modal-icon').textContent='✅';
-    document.getElementById('modal-sub').textContent='Review moves then tap Load PGN';
+    document.getElementById('modal-sub').textContent='Review moves then tap ⚡ INJECT DATA';
   }catch(err){
-    if(ta){ta.value='';ta.placeholder='Paste PGN text here...';}
-    document.getElementById('modal-icon').textContent='📋';
+    if(ta){ta.value='';ta.placeholder='Paste telemetry string here...';}
+    document.getElementById('modal-icon').textContent='📡';
     const sub=document.getElementById('modal-sub');
     if(sub){sub.textContent='Scan failed — check key or retry';sub.style.color='#FF4444';}
     const isAuthErr=err.message&&(err.message.includes('401')||err.message.includes('Incorrect API key')||err.message.includes('invalid_api_key'));
