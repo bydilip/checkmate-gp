@@ -10,7 +10,7 @@
 <style>
 :root{--gold:#D4AF37;--gold-dim:#9A7B2C;--gold-glow:#F5D060;--black:#000;--black-mid:#0A0A0A;--black-light:#161616;--border:#222;--white-hot:#FFF;--silver:#999;--silver-dim:#555;--green:#00E676}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{font-family:'Barlow',sans-serif;background:var(--black);color:var(--white-hot);min-height:100dvh;display:flex;flex-direction:column;align-items:center;overflow-x:hidden;user-select:none}
+body{font-family:'Barlow',sans-serif;background:var(--black);color:var(--white-hot);min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow-x:hidden;user-select:none}
 body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 1px,rgba(255,255,255,.018) 1px,rgba(255,255,255,.018) 2px),repeating-linear-gradient(-45deg,transparent,transparent 1px,rgba(255,255,255,.012) 1px,rgba(255,255,255,.012) 2px);pointer-events:none;z-index:0}
 body::after{content:'';position:fixed;top:-150px;left:50%;transform:translateX(-50%);width:500px;height:300px;background:radial-gradient(ellipse,rgba(212,175,55,.07),transparent 70%);pointer-events:none;z-index:0}
 .app{width:100%;max-width:480px;position:relative;z-index:1}
@@ -892,7 +892,12 @@ reader.readAsText(file);
 }
 
 // ═══ INIT ═══
-initSF();try{newGame();}catch(e){document.getElementById(‘board’).innerHTML=’<div style="grid-column:1/-1;grid-row:1/-1;color:red;display:flex;align-items:center;justify-content:center;font-size:14px;padding:20px;text-align:center">Error: ‘+e.message+’</div>’;}
+// ═══ INIT ═══
+try{newGame();}catch(e){document.getElementById(‘board’).innerHTML=’<div style="grid-column:1/-1;grid-row:1/-1;color:red;display:flex;align-items:center;justify-content:center;font-size:14px;padding:20px;text-align:center">Board Error: ‘+e.message+’</div>’;}
+// Load Stockfish AFTER board is rendered
+setTimeout(function(){try{initSF();}catch(e){console.error(‘initSF error:’,e);}},500);
+// Safety: if board still empty after 3s, force re-render
+setTimeout(function(){var b=document.getElementById(‘board’);if(b&&b.children.length===0){try{newGame();}catch(e){b.innerHTML=’<div style="color:red;padding:20px;grid-column:1/-1">Retry Error: ‘+e.message+’</div>’;}}},3000);
 </script>
 
 </body>
