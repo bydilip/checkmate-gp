@@ -42,9 +42,10 @@ body::after{content:'';position:fixed;top:-150px;left:50%;transform:translateX(-
 .clock.urgent{color:#FF4444!important;border-color:#FF4444!important;animation:pc .8s infinite}
 @keyframes pc{0%,100%{opacity:1}50%{opacity:.5}}
 .racing-stripe{display:none}
-.board-wrapper{width:100%;padding:0 8px}
-.board-container{width:100%;padding-top:100%;position:relative;overflow:hidden}
-.board{position:absolute;inset:0;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr)}
+.board-wrapper{width:100%;padding:0 8px;box-sizing:border-box}
+.board-container{width:100%;aspect-ratio:1/1;position:relative;overflow:hidden}
+@supports not (aspect-ratio:1/1){.board-container{padding-top:100%;}}
+.board{position:absolute;top:0;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr)}
 .square{position:relative;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .square.light{background:linear-gradient(135deg,#D9CBAA,#C8B890)}
 .square.dark{background:linear-gradient(135deg,#302820,#1E1812)}
@@ -226,11 +227,13 @@ let sf=null,sfOk=false,sfCb=null,useFB=false;
 function initSF(){
   const el=document.getElementById('engine-status');
   const sfURL='https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js';
+  el.className='engine-status loading';
+  el.innerHTML='<span class="edot"></span>Loading Stockfish...';
   function wireUp(worker){
     sf=worker;
     sf.onmessage=function(e){
       const l=typeof e.data==='string'?e.data:'';
-      if(l==='uciok')sf.postMessage('isready');
+      if(l==='uciok'){el.innerHTML='<span class="edot"></span>Initializing...';sf.postMessage('isready');}
       else if(l==='readyok'){sfOk=true;el.className='engine-status ready';el.innerHTML='<span class="edot"></span>Stockfish Ready';setTimeout(()=>el.style.opacity='0',2500);updPanel();}
       else if(l.startsWith('bestmove')){const m=l.split(' ')[1];if(sfCb&&m&&m!=='(none)'){sfCb(m);sfCb=null;}}
     };
@@ -238,13 +241,18 @@ function initSF(){
     sf.postMessage('uci');
   }
   function goFB(){useFB=true;el.className='engine-status ready';el.innerHTML='<span class="edot"></span>Engine Ready';setTimeout(()=>el.style.opacity='0',2500);updPanel();}
-  // Fetch → Blob Worker (bypasses cross-origin)
-  fetch(sfURL).then(r=>{if(!r.ok)throw 0;return r.text();}).then(code=>{
-    const blob=new Blob([code],{type:'application/javascript'});
-    wireUp(new Worker(URL.createObjectURL(blob)));
-  }).catch(()=>{
-    try{wireUp(new Worker(sfURL));}catch(e){goFB();}
-  });
+  // Fetch with progress indicator
+  const xhr=new XMLHttpRequest();
+  xhr.open('GET',sfURL);
+  xhr.onprogress=function(e){if(e.lengthComputable){const pct=Math.round(e.loaded/e.total*100);el.innerHTML=`<span class="edot"></span>Loading Stockfish ${pct}%`;}};
+  xhr.onload=function(){
+    if(xhr.status===200){
+      try{const blob=new Blob([xhr.responseText],{type:'application/javascript'});wireUp(new Worker(URL.createObjectURL(blob)));}
+      catch(e){try{wireUp(new Worker(sfURL));}catch(e2){goFB();}}
+    }else{goFB();}
+  };
+  xhr.onerror=function(){try{wireUp(new Worker(sfURL));}catch(e){goFB();}};
+  xhr.send();
 }
 function cfgSF(elo){if(!sf||!sfOk)return;sf.postMessage('stop');sf.postMessage('setoption name UCI_LimitStrength value true');sf.postMessage('setoption name UCI_Elo value '+elo);sf.postMessage('setoption name Skill Level value '+Math.max(0,Math.floor((elo-800)/50)));}
 function askSF(fen){return new Promise(r=>{if(!sf||!sfOk){r(null);return;}sfCb=r;sf.postMessage('position fen '+fen);const mt=aiElo<=500?300:aiElo<=1000?500:aiElo<=1500?800:aiElo<=2000?1200:1500;sf.postMessage('go movetime '+mt);setTimeout(()=>{if(sfCb===r){sfCb=null;sf.postMessage('stop');r(null);}},mt+2000);});}
@@ -884,7 +892,7 @@ reader.readAsText(file);
 }
 
 // ═══ INIT ═══
-initSF();newGame();
+initSF();try{newGame();}catch(e){document.getElementById(‘board’).innerHTML=’<div style="grid-column:1/-1;grid-row:1/-1;color:red;display:flex;align-items:center;justify-content:center;font-size:14px;padding:20px;text-align:center">Error: ‘+e.message+’</div>’;}
 </script>
 
 </body>
