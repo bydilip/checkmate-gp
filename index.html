@@ -496,7 +496,7 @@ Rules:
 - Do NOT invent moves for empty rows. Do NOT add a game result (1-0, 0-1, etc.).
 - Output the PGN moves, then add a { comment } at the end listing any moves you were uncertain about.`;
 
-  const geminiUrl='https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key='+key;
+  const geminiUrl='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key;
 
   try{
     const res=await fetch(geminiUrl,{
