@@ -673,14 +673,16 @@ async function validateAndCorrectPGN(pgnText,statusCb){
       if(statusCb)statusCb('Fixing move '+(Math.floor(i/2)+1)+'...');
       const fen=toFENCustom(cb,ct,cc,ce);
       const legals=getAllLegalSANs(ct,cb,cc,ce);
-      if(!legals.length){corrected=corrected.slice(0,i);break;}
-      const guess=await askGeminiCorrection(moves[i],fen,legals,ct,i);
-      if(guess){board=cb.map(r=>[...r]);cast={...cc};epT=ce;mv=sanToMove(guess,ct,board);}
+      let guess=null;
+      if(legals.length){
+        guess=await askGeminiCorrection(moves[i],fen,legals,ct,i);
+        if(guess){board=cb.map(r=>[...r]);cast={...cc};epT=ce;mv=sanToMove(guess,ct,board);}
+      }
       if(mv){corrections.push({i,was:moves[i],now:guess});corrected[i]=guess;fixes++;}
-      else{corrections.push({i,was:moves[i],now:null});corrected=corrected.slice(0,i);break;}
-    }else if(!mv){corrected=corrected.slice(0,i);break;}
+      else{corrections.push({i,was:moves[i],now:null});break;} // can't advance board, stop validating but keep all moves
+    }else if(!mv){corrections.push({i,was:moves[i],now:null});break;}
 
-    // Advance board state
+    // Advance board state (only reached if move is valid)
     const piece=board[mv.from[0]][mv.from[1]],ty=piece[1],co=piece[0];
     if(ty==='K'){cc[co+'K']=0;cc[co+'Q']=0;}
     if(ty==='R'){if(mv.from[0]===7&&mv.from[1]===0)cc.wQ=0;if(mv.from[0]===7&&mv.from[1]===7)cc.wK=0;if(mv.from[0]===0&&mv.from[1]===0)cc.bQ=0;if(mv.from[0]===0&&mv.from[1]===7)cc.bK=0;}
