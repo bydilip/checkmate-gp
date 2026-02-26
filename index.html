@@ -497,7 +497,7 @@ async function scanWithGemini(dataUrl){
   document.getElementById('modal-icon').textContent='⏳';
 
   const key=localStorage.getItem('google_api_key');
-  const geminiUrl='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key;
+  const geminiUrl='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key='+key;
 
   // Split image into left and right halves to avoid Gemini skipping the right side
   const halves=await splitImageInHalf(dataUrl);
