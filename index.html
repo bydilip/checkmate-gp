@@ -59,7 +59,9 @@ body::after{content:'';position:fixed;top:-100px;left:50%;transform:translateX(-
 @keyframes di{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
 .piece{position:relative;z-index:2;width:82%;height:82%;display:flex;align-items:center;justify-content:center;transition:transform .15s cubic-bezier(.34,1.56,.64,1);pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
 .piece svg{width:100%;height:100%;display:block}.square.selected .piece{transform:scale(1.18)}
-.status-bar{width:100%;padding:8px 16px;display:flex;align-items:center;justify-content:center;min-height:40px}
+.status-bar{width:100%;padding:8px 16px;display:flex;align-items:center;justify-content:center;min-height:40px;position:relative}
+.explore-toggle{position:absolute;right:16px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;border:1px solid var(--carbon-light);background:var(--carbon-mid);color:var(--silver-dim);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.explore-toggle:active,.explore-toggle.active{border-color:var(--ferrari-red);color:var(--ferrari-red);background:rgba(220,0,0,.1);box-shadow:0 0 10px rgba(220,0,0,.15)}
 .status-text{font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:3px;text-transform:uppercase;color:var(--silver-dim)}
 .status-badge{font-family:'Orbitron',monospace;background:var(--ferrari-red);color:var(--carbon);font-size:10px;font-weight:700;letter-spacing:2px;padding:5px 16px;border-radius:4px;text-transform:uppercase;animation:bp .3s cubic-bezier(.34,1.56,.64,1)}
 .status-badge.check{background:var(--ferrari-glow)}.status-badge.thinking{background:var(--carbon-mid);border:1px solid var(--ferrari-red);color:var(--ferrari-red)}
@@ -161,7 +163,7 @@ body::after{content:'';position:fixed;top:-100px;left:50%;transform:translateX(-
   <div class="player-info"><div class="player-name" id="name-white">DRIVER</div><div class="player-rating" id="rating-white"></div><div class="player-captures" id="captures-white"></div></div>
   <div class="clock" id="clock-white">10:00</div>
 </div>
-<div class="status-bar" id="status-bar"><div class="status-text">Lights out — White to move</div></div>
+<div class="status-bar" id="status-bar"><div class="status-text">Lights out — White to move</div><button class="explore-toggle" id="explore-toggle" onclick="exploreMode?exitExplore():enterExplore()" title="Move Explorer (E)">🔍</button></div>
 <div class="replay-bar" id="replay-bar" style="display:none">
   <div class="replay-info" id="replay-info"></div>
   <div class="replay-controls">
@@ -189,7 +191,6 @@ body::after{content:'';position:fixed;top:-100px;left:50%;transform:translateX(-
   <button class="btn" onclick="undoMove()"><span class="be">↩</span>Undo</button>
   <button class="btn primary" onclick="newGame()"><span class="be">🏁</span>Race</button>
   <button class="btn" onclick="flipBoard()"><span class="be">🔄</span>Flip</button>
-  <button class="btn" onclick="enterExplore()"><span class="be">🔍</span>Explore</button>
 </div>
 <div class="history-panel"><div class="history-label">Lap History</div><div class="history-scroll" id="move-history"></div></div>
 <div class="footer"><div class="checkered-bar"></div><div class="footer-text">Checkmate GP · Powered by Stockfish</div></div>
@@ -338,7 +339,8 @@ document.getElementById('stripe-top').classList.toggle('active',turn==='b');docu
 
 function rCap(){const mk=p=>`<span class="cap-piece">${SVG[p]||''}</span>`;document.getElementById('captures-white').innerHTML=capW.map(mk).join('');document.getElementById('captures-black').innerHTML=capB.map(mk).join('');}
 function rHist(){const el=document.getElementById('move-history');el.innerHTML='';for(let i=0;i<hist.length;i+=2){const c=document.createElement('div');c.className='move-chip'+(i>=hist.length-2?' latest':'');c.textContent=`${Math.floor(i/2)+1}. ${hist[i]}${hist[i+1]?' '+hist[i+1]:''}`;el.appendChild(c);}el.scrollLeft=el.scrollWidth;}
-function rStat(){const bar=document.getElementById('status-bar');if(gameOver)return;const eng=sfOk&&!useFB?'Stockfish':'Engine';if(aiOn){bar.innerHTML=`<div class="status-badge thinking">⏱ ${eng} thinking...</div>`;return;}if(iC(turn,board)){bar.innerHTML='<div class="status-badge check">⚠ CHECK!</div>';return;}const n=turn==='w'?(gMode==='vsAI'?'Driver':'Player 1'):(gMode==='vsAI'?eng:'Player 2');bar.innerHTML=`<div class="status-text">Lights green — ${n} to move</div>`;}
+function expToggleHTML(){return `<button class="explore-toggle${exploreMode?' active':''}" id="explore-toggle" onclick="exploreMode?exitExplore():enterExplore()" title="Move Explorer (E)">🔍</button>`;}
+function rStat(){const bar=document.getElementById('status-bar');if(gameOver)return;const eng=sfOk&&!useFB?'Stockfish':'Engine';const tb=expToggleHTML();if(aiOn){bar.innerHTML=`<div class="status-badge thinking">⏱ ${eng} thinking...</div>`+tb;return;}if(iC(turn,board)){bar.innerHTML='<div class="status-badge check">⚠ CHECK!</div>'+tb;return;}const n=turn==='w'?(gMode==='vsAI'?'Driver':'Player 1'):(gMode==='vsAI'?eng:'Player 2');bar.innerHTML=`<div class="status-text">Lights green — ${n} to move</div>`+tb;}
 function rAll(){rBoard();rClk();rCap();rHist();rStat();}
 
 // ═══ MAKE MOVE ═══
@@ -375,7 +377,7 @@ function endG(reason,winner){if(exploreMode)exitExplore();gameOver=true;clearInt
 if(reason==='Checkmate'){icon=winner==='w'?'🏆':'🏎️';title='CHECKMATE!';sub=(winner==='w'?'White':'Black')+' wins the Grand Prix';}
 else if(reason==='Stalemate'){icon='🤝';title='STALEMATE';sub='Race ends in a draw';}
 else{icon='⏱';title='TIME OUT!';sub=(winner==='w'?'White':'Black')+' wins on time';}
-document.getElementById('status-bar').innerHTML=`<div class="status-badge">${title}</div>`;
+document.getElementById('status-bar').innerHTML=`<div class="status-badge">${title}</div>`+expToggleHTML();
 showModal(icon,title,sub,[{label:'🏁 New Race',primary:true,action:'newGame()'},{label:'↩ Undo Move',action:'undoFromEnd()'},{label:'Close',action:'closeModal()'}]);}
 
 function showPromo(co){document.getElementById('modal-icon').textContent='👑';document.getElementById('modal-title').textContent='PIT STOP';document.getElementById('modal-sub').textContent='Promote your pawn';document.getElementById('modal-btns').innerHTML='<div class="promo-pieces">'+['Q','R','B','N'].map(t=>`<div class="promo-piece" onclick="doPr('${t}')">${SVG[co+t]}</div>`).join('')+'</div>';document.getElementById('modal-overlay').style.display='flex';}
@@ -894,6 +896,7 @@ function enterExplore(){
   exploreMode=true;sel=null;vMoves=[];
   document.getElementById('game-controls').style.display='none';
   document.getElementById('explore-panel').style.display='block';
+  const tb=document.getElementById('explore-toggle');if(tb)tb.classList.add('active');
   rExpDepth();buildExpTree();
 }
 
@@ -907,6 +910,7 @@ function exitExplore(){
   exploreSaved=null;exploreTree=null;exploreSelNode=null;exploreAnalyzing=false;exploreNodes=[];
   document.getElementById('explore-panel').style.display='none';
   document.getElementById('game-controls').style.display='flex';
+  const tb=document.getElementById('explore-toggle');if(tb)tb.classList.remove('active');
   if(sfOk&&!useFB)cfgSF(aiElo);
   rAll();
 }
