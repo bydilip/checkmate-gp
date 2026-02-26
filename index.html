@@ -716,7 +716,8 @@ async function validateAndCorrectMoves(movesWithConf,headers,ocrNotes,statusCb){
       else{corrections.push({i,was:moves[i],now:guess||null});break;}
     }else if(!mv){corrections.push({i,was:moves[i],now:null});break;}
 
-    // Advance board state (only reached if move is valid)
+    // Advance board state — restore from canonical copy since sanToMove mutates global board
+    board=cb.map(r=>[...r]);cast={...cc};epT=ce;
     const piece=board[mv.from[0]][mv.from[1]],ty=piece[1],co=piece[0];
     if(ty==='K'){cc[co+'K']=0;cc[co+'Q']=0;}
     if(ty==='R'){if(mv.from[0]===7&&mv.from[1]===0)cc.wQ=0;if(mv.from[0]===7&&mv.from[1]===7)cc.wK=0;if(mv.from[0]===0&&mv.from[1]===0)cc.bQ=0;if(mv.from[0]===0&&mv.from[1]===7)cc.bK=0;}
