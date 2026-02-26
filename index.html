@@ -477,15 +477,15 @@ async function scanWithOpenAI(dataUrl){
   document.getElementById('modal-icon').textContent='⏳';
 
   const key=localStorage.getItem('openai_api_key');
-  const prompt=`This is a photo of a handwritten chess score sheet (two-column format: moves 1-30 on the left, moves 31-60 on the right). The handwriting is from a child so it may be messy or uneven.
+  const prompt=`This is a photo of a handwritten chess score sheet. The handwriting is from a child so it may be messy or uneven. The sheet may have multiple columns — read ALL columns from left to right, continuing the move numbers across columns.
 
 Rules:
-- Transcribe ONLY rows where handwriting is actually present. A row with NO writing (blank/empty cell) means no move was played — SKIP it completely.
-- For messy handwriting, use your best guess for what legal chess move it could be based on piece notation and the file/rank characters.
+- Read EVERY column on the sheet. The game continues across columns (e.g. left column may have moves 1-30, right column continues with moves 31+). Do NOT stop after the first column.
+- Transcribe ONLY rows where handwriting is actually present. Skip blank/empty rows.
+- For messy handwriting, use your best guess for what legal chess move it could be.
 - Use standard algebraic notation (e.g. Nf3, Bxc6, O-O, exd5).
 - If you can read player names, include [White "Name"] and [Black "Name"] PGN headers.
-- STOP when you reach blank rows — do NOT invent moves for empty rows.
-- Do NOT add a game result (1-0, 0-1, etc.).
+- Do NOT invent moves for empty rows. Do NOT add a game result (1-0, 0-1, etc.).
 - Output only the PGN moves, no explanation.`;
 
   try{
