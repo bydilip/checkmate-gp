@@ -477,18 +477,18 @@ async function scanWithOpenAI(dataUrl){
   document.getElementById('modal-icon').textContent='⏳';
 
   const key=localStorage.getItem('openai_api_key');
-  const prompt='This is a chess score sheet with handwritten moves. Extract ONLY the moves that are clearly written on the sheet — do NOT invent, guess, or complete any moves beyond what is visible. If a move is illegible, skip it entirely. If you can read player names write [White "Name"] and [Black "Name"] headers first, then the moves like: 1. e4 e5 2. Nf3 Nc6. Use standard algebraic notation. STOP as soon as the written moves end — do not continue the game or add a result. Output only the PGN text, no explanation.';
+  const prompt='This is a photo of a handwritten chess score sheet. Carefully read every move written on the sheet and return them as PGN. If you can read player names write [White "Name"] and [Black "Name"] headers first, then the moves like: 1. e4 e5 2. Nf3 Nc6. Use standard algebraic notation. For unclear handwriting, use your best guess based on what legal chess move it could be. IMPORTANT: Only transcribe moves that are actually written on the sheet — do NOT continue the game beyond what is written, and do NOT add a game result. Output only the PGN text, no explanation.';
 
   try{
     const res=await fetch('https://api.openai.com/v1/chat/completions',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
       body:JSON.stringify({
-        model:'gpt-4o-mini',
-        max_tokens:1024,
+        model:'gpt-4o',
+        max_tokens:2048,
         temperature:0,
         messages:[{role:'user',content:[
-          {type:'image_url',image_url:{url:dataUrl}},
+          {type:'image_url',image_url:{url:dataUrl,detail:'high'}},
           {type:'text',text:prompt}
         ]}]
       })
