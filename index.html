@@ -493,8 +493,7 @@ function handleScanImage(ev){
 
 async function scanWithGPT(dataUrl){
   const ta=document.getElementById('pgn-text');
-  const prevPGN=ta?ta.value:'';
-  if(ta){ta.placeholder='Scanning score sheet...';}
+  if(ta){ta.value='';ta.placeholder='Scanning score sheet...';}
   document.getElementById('modal-icon').textContent='⏳';
 
   const key=localStorage.getItem('openai_api_key');
@@ -586,7 +585,7 @@ RULES:
     if(!movesWithConf.length){
       showPGNUpload();
       const taE=document.getElementById('pgn-text');
-      if(taE){taE.value=prevPGN;taE.placeholder='No moves detected — try re-scanning';}
+      if(taE){taE.value='';taE.placeholder='No moves detected — try re-scanning';}
       document.getElementById('modal-icon').textContent='⚠️';
       document.getElementById('modal-sub').textContent='Could not read moves from image';
       return;
@@ -607,7 +606,7 @@ RULES:
     document.getElementById('modal-icon').textContent='✅';
     document.getElementById('modal-sub').textContent='Review moves then tap ⚡ INJECT DATA';
   }catch(err){
-    if(ta){ta.value=prevPGN;ta.placeholder='Paste telemetry string here...';}
+    if(ta){ta.value='';ta.placeholder='Paste telemetry string here...';}
     document.getElementById('modal-icon').textContent='📡';
     console.error('Scan error:',err.message);
     const msg=err.message||'Unknown error';
