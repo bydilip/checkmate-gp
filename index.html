@@ -433,7 +433,7 @@ function loadPGNFromFile(ev){const file=ev.target.files[0];if(!file)return;const
 let _lastScanDataUrl=null;
 
 function triggerScan(){
-  const key=localStorage.getItem('openai_api_key');
+  const key=localStorage.getItem('google_api_key');
   if(!key)promptApiKey();
   else document.getElementById('scan-img-input').click();
 }
@@ -441,8 +441,8 @@ function triggerScan(){
 function promptApiKey(errorMsg){
   document.getElementById('modal-btns').innerHTML=`
     <div class="setting-group">
-      <div class="setting-label">OpenAI API Key</div>
-      <input id="api-key-input" type="password" placeholder="sk-..." style="width:100%;background:var(--carbon);border:1px solid var(--carbon-light);border-radius:8px;color:var(--silver);font-family:monospace;font-size:12px;padding:10px;box-sizing:border-box;margin-bottom:8px">
+      <div class="setting-label">Google API Key</div>
+      <input id="api-key-input" type="password" placeholder="AIza..." style="width:100%;background:var(--carbon);border:1px solid var(--carbon-light);border-radius:8px;color:var(--silver);font-family:monospace;font-size:12px;padding:10px;box-sizing:border-box;margin-bottom:8px">
       ${errorMsg?`<div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;color:#FF4444;letter-spacing:1px;text-align:left;margin-bottom:6px">${errorMsg}</div>`:''}
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--silver-dim);letter-spacing:1px;text-align:left">Saved in this browser only. Used for handwriting recognition.</div>
     </div>
@@ -453,9 +453,9 @@ function promptApiKey(errorMsg){
 function saveApiKey(){
   const k=(document.getElementById('api-key-input')||{}).value||'';
   if(!k.trim())return;
-  localStorage.setItem('openai_api_key',k.trim());
+  localStorage.setItem('google_api_key',k.trim());
   // If we have a previous image, re-scan it directly; otherwise open file picker
-  if(_lastScanDataUrl)scanWithOpenAI(_lastScanDataUrl);
+  if(_lastScanDataUrl)scanWithGemini(_lastScanDataUrl);
   else document.getElementById('scan-img-input').click();
 }
 
@@ -466,17 +466,23 @@ function handleScanImage(ev){
   const reader=new FileReader();
   reader.onload=function(e){
     _lastScanDataUrl=e.target.result;
-    scanWithOpenAI(_lastScanDataUrl);
+    scanWithGemini(_lastScanDataUrl);
   };
   reader.readAsDataURL(file);
 }
 
-async function scanWithOpenAI(dataUrl){
+async function scanWithGemini(dataUrl){
   const ta=document.getElementById('pgn-text');
   if(ta){ta.value='';ta.placeholder='Scanning score sheet...';}
   document.getElementById('modal-icon').textContent='⏳';
 
-  const key=localStorage.getItem('openai_api_key');
+  const key=localStorage.getItem('google_api_key');
+  // Extract base64 data and mime type from the data URL
+  const mimeMatch=dataUrl.match(/^data:(image\/[^;]+);base64,(.+)$/);
+  if(!mimeMatch){throw new Error('Invalid image data');}
+  const mimeType=mimeMatch[1];
+  const base64Data=mimeMatch[2];
+
   const prompt=`This is a photo of a handwritten chess score sheet. The handwriting is from a child so it may be messy or uneven. The sheet may have multiple columns — read ALL columns from left to right, continuing the move numbers across columns.
 
 Rules:
@@ -488,23 +494,23 @@ Rules:
 - Do NOT invent moves for empty rows. Do NOT add a game result (1-0, 0-1, etc.).
 - Output only the PGN moves, no explanation.`;
 
+  const geminiUrl='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+key;
+
   try{
-    const res=await fetch('https://api.openai.com/v1/chat/completions',{
+    const res=await fetch(geminiUrl,{
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        model:'gpt-4o',
-        max_tokens:2048,
-        temperature:0,
-        messages:[{role:'user',content:[
-          {type:'image_url',image_url:{url:dataUrl,detail:'high'}},
-          {type:'text',text:prompt}
-        ]}]
+        contents:[{parts:[
+          {inline_data:{mime_type:mimeType,data:base64Data}},
+          {text:prompt}
+        ]}],
+        generationConfig:{temperature:0,maxOutputTokens:2048}
       })
     });
     if(!res.ok){const e=await res.json();throw new Error(e.error?.message||res.statusText);}
     const data=await res.json();
-    const rawPgn=(data.choices?.[0]?.message?.content||'').trim().replace(/^```[^\n]*\n?/,'').replace(/```$/,'').trim();
+    const rawPgn=(data.candidates?.[0]?.content?.parts?.[0]?.text||'').trim().replace(/^```[^\n]*\n?/,'').replace(/```$/,'').trim();
 
     // Pass 2: validate and correct the raw OCR output
     if(ta)ta.placeholder='Validating moves...';
@@ -517,19 +523,17 @@ Return ONLY the corrected PGN with no explanation.
 Raw OCR PGN:
 ${rawPgn}`;
 
-    const res2=await fetch('https://api.openai.com/v1/chat/completions',{
+    const res2=await fetch(geminiUrl,{
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        model:'gpt-4o',
-        max_tokens:2048,
-        temperature:0,
-        messages:[{role:'user',content:fixPrompt}]
+        contents:[{parts:[{text:fixPrompt}]}],
+        generationConfig:{temperature:0,maxOutputTokens:2048}
       })
     });
     if(!res2.ok){const e=await res2.json();throw new Error(e.error?.message||res2.statusText);}
     const data2=await res2.json();
-    const pgn=(data2.choices?.[0]?.message?.content||'').trim().replace(/^```[^\n]*\n?/,'').replace(/```$/,'').trim();
+    const pgn=(data2.candidates?.[0]?.content?.parts?.[0]?.text||'').trim().replace(/^```[^\n]*\n?/,'').replace(/```$/,'').trim();
 
     showPGNUpload();
     const taFilled=document.getElementById('pgn-text');
@@ -541,8 +545,8 @@ ${rawPgn}`;
     document.getElementById('modal-icon').textContent='📡';
     const sub=document.getElementById('modal-sub');
     if(sub){sub.textContent='Scan failed — check key or retry';sub.style.color='#FF4444';}
-    const isAuthErr=err.message&&(err.message.includes('401')||err.message.includes('Incorrect API key')||err.message.includes('invalid_api_key'));
-    if(isAuthErr){localStorage.removeItem('openai_api_key');promptApiKey('Invalid API key — paste a new one and try again');}
+    const isAuthErr=err.message&&(err.message.includes('400')||err.message.includes('403')||err.message.includes('API_KEY_INVALID')||err.message.includes('PERMISSION_DENIED'));
+    if(isAuthErr){localStorage.removeItem('google_api_key');promptApiKey('Invalid API key — paste a new one and try again');}
     console.error('Scan error:',err.message);
   }
 }
