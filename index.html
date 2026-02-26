@@ -459,6 +459,26 @@ function saveApiKey(){
   else document.getElementById('scan-img-input').click();
 }
 
+function splitImageInHalf(dataUrl){
+  return new Promise(function(resolve){
+    const img=new Image();
+    img.onload=function(){
+      const w=img.width, h=img.height;
+      const midX=Math.floor(w/2);
+      // Left half
+      const cL=document.createElement('canvas');
+      cL.width=midX; cL.height=h;
+      cL.getContext('2d').drawImage(img,0,0,midX,h,0,0,midX,h);
+      // Right half
+      const cR=document.createElement('canvas');
+      cR.width=w-midX; cR.height=h;
+      cR.getContext('2d').drawImage(img,midX,0,w-midX,h,0,0,w-midX,h);
+      resolve({left:cL.toDataURL('image/jpeg',0.9), right:cR.toDataURL('image/jpeg',0.9)});
+    };
+    img.src=dataUrl;
+  });
+}
+
 function handleScanImage(ev){
   const file=ev.target.files[0];
   ev.target.value='';
@@ -477,21 +497,26 @@ async function scanWithGemini(dataUrl){
   document.getElementById('modal-icon').textContent='⏳';
 
   const key=localStorage.getItem('google_api_key');
-  // Extract base64 data and mime type from the data URL
-  const mimeMatch=dataUrl.match(/^data:(image\/[^;]+);base64,(.+)$/);
-  if(!mimeMatch){throw new Error('Invalid image data');}
-  const mimeType=mimeMatch[1];
-  const base64Data=mimeMatch[2];
+  const geminiUrl='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key;
 
-  const prompt=`You are an expert chess notation reader. This is a photograph of a US Chess Federation scoresheet with handwritten moves written by a child. The handwriting may be messy or uneven.
+  // Split image into left and right halves to avoid Gemini skipping the right side
+  const halves=await splitImageInHalf(dataUrl);
 
-CRITICAL — SCORESHEET LAYOUT:
-This scoresheet has TWO halves side by side. The LEFT half has rows 1-30 and the RIGHT half has rows 31-60. BOTH halves have handwritten moves. You MUST read BOTH halves — first the left half top to bottom, then the right half top to bottom. The game likely has 40-60 total moves.
+  function extractBase64(dUrl){
+    const m=dUrl.match(/^data:(image\/[^;]+);base64,(.+)$/);
+    if(!m)throw new Error('Invalid image data');
+    return{mime:m[1],data:m[2]};
+  }
+
+  const leftImg=extractBase64(halves.left);
+  const rightImg=extractBase64(halves.right);
+
+  const leftPrompt=`You are an expert chess notation reader. This is the LEFT half of a US Chess Federation scoresheet with handwritten moves written by a child.
+
+This half contains moves 1-30. Each row has a move number, White's move on the left, and Black's move on the right.
 
 YOU MUST:
-- First: read ALL rows on the LEFT half (rows 1-30) top to bottom.
-- Then: read ALL rows on the RIGHT half (rows 31-60) top to bottom. Do NOT skip the right half.
-- Do NOT stop after the left half. The game CONTINUES on the right half.
+- Read EVERY numbered row that has handwriting, top to bottom.
 - If a move is hard to read, give your best guess — do not skip it.
 - Use standard algebraic notation (e.g. e4, Nf3, Bxc6, O-O, exd5, Qd1+).
 - Common child handwriting confusions: N↔M, B↔P, c↔e, 1↔l, K↔R, x↔+, f↔t, 5↔S, a↔o, d↔cl, 6↔b.
@@ -501,23 +526,61 @@ YOU MUST:
 
 Output ONLY valid PGN.`;
 
-  const geminiUrl='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key;
+  const rightPrompt=`You are an expert chess notation reader. This is the RIGHT half of a US Chess Federation scoresheet with handwritten moves written by a child.
+
+This half contains moves 31-60 (the CONTINUATION of the game). Each row has a move number, White's move on the left, and Black's move on the right.
+
+YOU MUST:
+- Read EVERY numbered row that has handwriting, top to bottom.
+- The first move number is 31. Output moves starting with 31.
+- If a move is hard to read, give your best guess — do not skip it.
+- Use standard algebraic notation (e.g. e4, Nf3, Bxc6, O-O, exd5, Qd1+).
+- Common child handwriting confusions: N↔M, B↔P, c↔e, 1↔l, K↔R, x↔+, f↔t, 5↔S, a↔o, d↔cl, 6↔b.
+- Do NOT add a game result. Do NOT invent moves for blank rows.
+- After the moves, add a { comment } listing any moves you were uncertain about.
+
+Output ONLY valid PGN (move numbers and moves only, no headers).`;
 
   try{
-    const res=await fetch(geminiUrl,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        contents:[{parts:[
-          {text:prompt},
-          {inline_data:{mime_type:mimeType,data:base64Data}}
-        ]}],
-        generationConfig:{temperature:0,maxOutputTokens:4096}
+    // Send both halves in parallel
+    const [leftRes,rightRes]=await Promise.all([
+      fetch(geminiUrl,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          contents:[{parts:[{text:leftPrompt},{inline_data:{mime_type:leftImg.mime,data:leftImg.data}}]}],
+          generationConfig:{temperature:0,maxOutputTokens:4096}
+        })
+      }),
+      fetch(geminiUrl,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          contents:[{parts:[{text:rightPrompt},{inline_data:{mime_type:rightImg.mime,data:rightImg.data}}]}],
+          generationConfig:{temperature:0,maxOutputTokens:4096}
+        })
       })
-    });
-    if(!res.ok){const e=await res.json();throw new Error(e.error?.message||res.statusText);}
-    const data=await res.json();
-    const pgn=(data.candidates?.[0]?.content?.parts?.[0]?.text||'').trim().replace(/^```[^\n]*\n?/,'').replace(/```$/,'').trim();
+    ]);
+
+    if(!leftRes.ok){const e=await leftRes.json();throw new Error(e.error?.message||leftRes.statusText);}
+    if(!rightRes.ok){const e=await rightRes.json();throw new Error(e.error?.message||rightRes.statusText);}
+
+    const leftData=await leftRes.json();
+    const rightData=await rightRes.json();
+
+    const clean=t=>(t||'').trim().replace(/^```[^\n]*\n?/,'').replace(/```$/,'').trim();
+    const leftPgn=clean(leftData.candidates?.[0]?.content?.parts?.[0]?.text);
+    const rightPgn=clean(rightData.candidates?.[0]?.content?.parts?.[0]?.text);
+
+    // Merge: left PGN has headers + moves 1-30, right PGN has moves 31+
+    // Strip comments from left side, combine, keep comments from both at end
+    const leftComments=(leftPgn.match(/\{[^}]*\}/g)||[]).join(' ');
+    const rightComments=(rightPgn.match(/\{[^}]*\}/g)||[]).join(' ');
+    const leftClean=leftPgn.replace(/\{[^}]*\}/g,'').replace(/1-0|0-1|1\/2-1\/2|\*/g,'').trim();
+    const rightClean=rightPgn.replace(/\[.*?\]\s*/g,'').replace(/\{[^}]*\}/g,'').replace(/1-0|0-1|1\/2-1\/2|\*/g,'').trim();
+
+    let pgn=leftClean;
+    if(rightClean) pgn+='\n'+rightClean;
+    const allComments=[leftComments,rightComments].filter(c=>c).join(' ');
+    if(allComments) pgn+='\n'+allComments;
 
     showPGNUpload();
     const taFilled=document.getElementById('pgn-text');
