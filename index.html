@@ -567,8 +567,10 @@ Output ONLY valid PGN (move numbers and moves only, no headers).`;
     const rightData=await rightRes.json();
 
     const clean=t=>(t||'').trim().replace(/^```[^\n]*\n?/,'').replace(/```$/,'').trim();
-    const leftPgn=clean(leftData.candidates?.[0]?.content?.parts?.[0]?.text);
-    const rightPgn=clean(rightData.candidates?.[0]?.content?.parts?.[0]?.text);
+    // Gemini 2.5 Pro returns "thought" parts before the actual answer — skip them
+    const extractText=d=>{const ps=d.candidates?.[0]?.content?.parts||[];const real=ps.filter(p=>!p.thought);return real.map(p=>p.text||'').join('');};
+    const leftPgn=clean(extractText(leftData));
+    const rightPgn=clean(extractText(rightData));
 
     // Merge: left PGN has headers + moves 1-30, right PGN has moves 31+
     // Strip comments from left side, combine, keep comments from both at end
@@ -581,6 +583,17 @@ Output ONLY valid PGN (move numbers and moves only, no headers).`;
     if(rightClean) pgn+='\n'+rightClean;
     const allComments=[leftComments,rightComments].filter(c=>c).join(' ');
     if(allComments) pgn+='\n'+allComments;
+
+    // Guard: if OCR returned no usable text, show error
+    const testParsed=parsePGN(pgn);
+    if(!testParsed.moves.length){
+      showPGNUpload();
+      const taE=document.getElementById('pgn-text');
+      if(taE){taE.value='';taE.placeholder='No moves detected — try re-scanning';}
+      document.getElementById('modal-icon').textContent='⚠️';
+      document.getElementById('modal-sub').textContent='Could not read moves from image';
+      return;
+    }
 
     showPGNUpload();
     let taF=document.getElementById('pgn-text');
@@ -653,7 +666,8 @@ Respond with ONLY the corrected move in algebraic notation. Nothing else.`;
   try{
     const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0,maxOutputTokens:20}})});
     if(!res.ok)return null;const data=await res.json();
-    return(data.candidates?.[0]?.content?.parts?.[0]?.text||'').trim().replace(/[`'".\s]/g,'')||null;
+    const ps=data.candidates?.[0]?.content?.parts||[];const real=ps.filter(p=>!p.thought);
+    return(real.map(p=>p.text||'').join('')).trim().replace(/[`'".\s]/g,'')||null;
   }catch(e){return null;}
 }
 
