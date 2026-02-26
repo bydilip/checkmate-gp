@@ -517,41 +517,7 @@ Output ONLY valid PGN.`;
     });
     if(!res.ok){const e=await res.json();throw new Error(e.error?.message||res.statusText);}
     const data=await res.json();
-    const rawPgn=(data.candidates?.[0]?.content?.parts?.[0]?.text||'').trim().replace(/^```[^\n]*\n?/,'').replace(/```$/,'').trim();
-
-    // Pass 2: validate and correct the raw OCR output
-    if(ta)ta.placeholder='Validating moves...';
-    const fixPrompt=`You are an expert chess player and notation validator. Below is a PGN transcribed via OCR from a child's handwritten US Chess scoresheet. It likely contains errors from misread handwriting.
-
-Common OCR mistakes in chess notation:
-- "Bc4" misread as "Be4" or "Pc4"
-- "Nf3" misread as "Mf3" or "Nf8"
-- Lowercase L misread as 1, or 5 as S
-- Castling "O-O" misread as "0-0" or "o-o"
-- Capture "x" missed or added incorrectly
-
-Your task:
-1. Start from the initial chess position and play through EVERY move.
-2. For each move, verify it is legal on the current board.
-3. If a move is illegal, find the most likely legal move that looks similar in handwriting.
-4. Do NOT skip or drop moves — the total number of moves should stay the same or very close.
-5. If no reasonable correction exists for a move, stop there.
-6. Return the corrected PGN. At the end, add a { comment } noting which moves you corrected.
-
-Raw OCR PGN:
-${rawPgn}`;
-
-    const res2=await fetch(geminiUrl,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        contents:[{parts:[{text:fixPrompt}]}],
-        generationConfig:{temperature:0,maxOutputTokens:4096}
-      })
-    });
-    if(!res2.ok){const e=await res2.json();throw new Error(e.error?.message||res2.statusText);}
-    const data2=await res2.json();
-    const pgn=(data2.candidates?.[0]?.content?.parts?.[0]?.text||'').trim().replace(/^```[^\n]*\n?/,'').replace(/```$/,'').trim();
+    const pgn=(data.candidates?.[0]?.content?.parts?.[0]?.text||'').trim().replace(/^```[^\n]*\n?/,'').replace(/```$/,'').trim();
 
     showPGNUpload();
     const taFilled=document.getElementById('pgn-text');
