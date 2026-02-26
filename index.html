@@ -149,7 +149,7 @@ body::after{content:'';position:fixed;top:-100px;left:50%;transform:translateX(-
   <div class="logo-area"><div class="shield"></div><div><div class="logo-text">CHECKMATE GP</div><div class="logo-sub">Racing Edition</div></div></div>
   <div style="display:flex;gap:6px"><div class="btn-icon" onclick="showPGNUpload()">📡</div><div class="btn-icon" onclick="showSettings()">⚙</div></div>
 </div>
-<div class="engine-status loading" id="engine-status"><span class="edot"></span>Loading Stockfish Engine...</div>
+<div class="engine-status loading" id="engine-status"><span class="edot"></span>Loading Stockfish 18...</div>
 <div class="player-panel black-panel" id="panel-black">
   <div class="player-avatar" id="avatar-black">🏎️</div>
   <div class="player-info"><div class="player-name" id="name-black">STOCKFISH</div><div class="player-rating" id="rating-black">ELO 1000</div><div class="player-captures" id="captures-black"></div></div>
@@ -193,7 +193,7 @@ body::after{content:'';position:fixed;top:-100px;left:50%;transform:translateX(-
   <button class="btn" onclick="flipBoard()"><span class="be">🔄</span>Flip</button>
 </div>
 <div class="history-panel"><div class="history-label">Lap History</div><div class="history-scroll" id="move-history"></div></div>
-<div class="footer"><div class="checkered-bar"></div><div class="footer-text">Checkmate GP · Powered by Stockfish</div></div>
+<div class="footer"><div class="checkered-bar"></div><div class="footer-text">Checkmate GP · Powered by Stockfish 18</div></div>
 </div>
 <div class="modal-overlay" id="modal-overlay" style="display:none"><div class="modal">
   <div class="modal-icon" id="modal-icon">🏁</div><div class="modal-title" id="modal-title">Settings</div>
@@ -216,42 +216,48 @@ function mkSVG(t,w){
 }
 const SVG={};['P','R','N','B','Q','K'].forEach(t=>{SVG['w'+t]=mkSVG(t,true);SVG['b'+t]=mkSVG(t,false);});
 
-// ═══ STOCKFISH ENGINE (loads via Blob Worker on real servers) ═══
+// ═══ STOCKFISH 18 ENGINE (lite-single WASM via jsDelivr CDN) ═══
 let sf=null,sfOk=false,sfCb=null,useFB=false;
 let sfExploreMode=false,sfExploreCb=null,sfExploreLines=[];
 function initSF(){
   const el=document.getElementById('engine-status');
-  const sfURL='https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js';
+  const sfBase='https://cdn.jsdelivr.net/npm/stockfish@18.0.5/bin/';
+  const sfJS=sfBase+'stockfish-18-lite-single.js';
+  let initTimer=null;
   function wireUp(worker){
     sf=worker;
+    initTimer=setTimeout(()=>{if(!sfOk){sf=null;goFB();}},20000);
     sf.onmessage=function(e){
       const l=typeof e.data==='string'?e.data:'';
       if(l==='uciok')sf.postMessage('isready');
-      else if(l==='readyok'){sfOk=true;el.className='engine-status ready';el.innerHTML='<span class="edot"></span>Stockfish Ready';setTimeout(()=>el.style.opacity='0',2500);updPanel();}
+      else if(l==='readyok'){clearTimeout(initTimer);sfOk=true;el.className='engine-status ready';el.innerHTML='<span class="edot"></span>Stockfish 18 Ready';setTimeout(()=>el.style.opacity='0',2500);updPanel();}
       else if(sfExploreMode&&l.startsWith('info')&&l.includes(' multipv ')){sfExploreLines.push(l);}
       else if(l.startsWith('bestmove')){if(sfExploreMode&&sfExploreCb){const cb=sfExploreCb;sfExploreCb=null;cb();return;}const m=l.split(' ')[1];if(sfCb&&m&&m!=='(none)'){sfCb(m);sfCb=null;}}
     };
-    sf.onerror=function(){goFB();};
+    sf.onerror=function(){clearTimeout(initTimer);goFB();};
     sf.postMessage('uci');
   }
   function goFB(){useFB=true;el.className='engine-status ready';el.innerHTML='<span class="edot"></span>Engine Ready';setTimeout(()=>el.style.opacity='0',2500);updPanel();}
-  // Fetch → Blob Worker (bypasses cross-origin)
-  fetch(sfURL).then(r=>{if(!r.ok)throw 0;return r.text();}).then(code=>{
-    const blob=new Blob([code],{type:'application/javascript'});
-    wireUp(new Worker(URL.createObjectURL(blob)));
-  }).catch(()=>{
-    try{wireUp(new Worker(sfURL));}catch(e){goFB();}
-  });
+  // Primary: importScripts wrapper — sets Module.locateFile so WASM resolves to CDN
+  try{
+    const loader='var Module={locateFile:function(p){return "'+sfBase+'"+p;}};importScripts("'+sfJS+'");';
+    wireUp(new Worker(URL.createObjectURL(new Blob([loader],{type:'application/javascript'}))));
+  }catch(e){
+    // Fallback: fetch JS, patch WASM filename to absolute CDN URL, create Blob Worker
+    fetch(sfJS).then(r=>{if(!r.ok)throw 0;return r.text();}).then(code=>{
+      wireUp(new Worker(URL.createObjectURL(new Blob([code.replace(/stockfish-18-lite-single\.wasm/g,sfBase+'stockfish-18-lite-single.wasm')],{type:'application/javascript'}))));
+    }).catch(()=>goFB());
+  }
 }
-function sfSkill(elo){if(elo<=200)return 0;if(elo<=400)return 1;if(elo<=600)return 3;if(elo<=800)return 5;if(elo<=1000)return 7;if(elo<=1200)return 9;if(elo<=1500)return 12;if(elo<=1800)return 15;if(elo<=2000)return 16;if(elo<=2300)return 17;if(elo<=2600)return 19;return 20;}
-function cfgSF(elo){if(!sf||!sfOk)return;sf.postMessage('stop');sf.postMessage('setoption name Skill Level value '+sfSkill(elo));sf.postMessage('setoption name UCI_LimitStrength value true');sf.postMessage('setoption name UCI_Elo value '+Math.max(1350,Math.min(2850,elo)));}
+function sfSkill(elo){if(elo<=200)return 0;if(elo<=400)return 0;if(elo<=600)return 2;if(elo<=800)return 4;if(elo<=1000)return 6;if(elo<=1200)return 8;if(elo<=1500)return 11;if(elo<=1800)return 14;if(elo<=2000)return 16;if(elo<=2300)return 17;if(elo<=2600)return 19;return 20;}
+function cfgSF(elo){if(!sf||!sfOk)return;sf.postMessage('stop');sf.postMessage('setoption name Skill Level value '+sfSkill(elo));sf.postMessage('setoption name UCI_LimitStrength value true');sf.postMessage('setoption name UCI_Elo value '+Math.max(1320,Math.min(3190,elo)));}
 function askSF(fen){return new Promise(r=>{if(!sf||!sfOk){r(null);return;}
   sf.postMessage('setoption name Skill Level value '+sfSkill(aiElo));
   sf.postMessage('setoption name UCI_LimitStrength value true');
-  sf.postMessage('setoption name UCI_Elo value '+Math.max(1350,Math.min(2850,aiElo)));
+  sf.postMessage('setoption name UCI_Elo value '+Math.max(1320,Math.min(3190,aiElo)));
   const t0=Date.now();
   const thinkMs=aiElo<=400?300:aiElo<=800?500:aiElo<=1200?700:aiElo<=1800?1000:1500;
-  const maxD=aiElo<=200?1:aiElo<=400?2:aiElo<=600?3:aiElo<=800?5:aiElo<=1000?8:aiElo<=1500?10:0;
+  const maxD=aiElo<=400?1:aiElo<=600?2:aiElo<=800?3:aiElo<=1000?5:aiElo<=1500?7:0;
   const cb=function(m){const wait=Math.max(0,thinkMs-(Date.now()-t0));setTimeout(()=>r(m),wait);};
   sfCb=cb;sf.postMessage('position fen '+fen);
   sf.postMessage(maxD?'go depth '+maxD+' movetime 3000':'go movetime '+thinkMs);
