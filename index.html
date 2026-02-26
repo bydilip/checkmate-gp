@@ -511,35 +511,38 @@ async function scanWithGemini(dataUrl){
   const leftImg=extractBase64(halves.left);
   const rightImg=extractBase64(halves.right);
 
-  const leftPrompt=`You are an expert chess notation reader. This is the LEFT half of a US Chess Federation scoresheet with handwritten moves written by a child.
+  const ocrPrompt=(half,range)=>`You are reading a child's handwritten chess scoresheet from a US Chess Federation form.
 
-This half contains moves 1-30. Each row has a move number, White's move on the left, and Black's move on the right.
+This is the ${half} half of the scoresheet, containing moves ${range}.
+Each row has: a move number, a White move, and a Black move.
+The handwriting may be messy with crossed-out moves.
 
-YOU MUST:
-- Read EVERY numbered row that has handwriting, top to bottom.
-- If a move is hard to read, give your best guess — do not skip it.
-- Use standard algebraic notation (e.g. e4, Nf3, Bxc6, O-O, exd5, Qd1+).
-- Common child handwriting confusions: N↔M, B↔P, c↔e, 1↔l, K↔R, x↔+, f↔t, 5↔S, a↔o, d↔cl, 6↔b.
-- If you can read player names at the top, include [White "Name"] and [Black "Name"] headers.
-- Do NOT add a game result. Do NOT invent moves for blank rows.
-- After the moves, add a { comment } listing any moves you were uncertain about.
+YOUR TASK (OCR ONLY, NO CHESS CORRECTION):
+1. Read the moves exactly as written, even if they are illegal or strange.
+2. Do not "fix" or invent legal moves in this step.
+3. If a move is hard to read, give your best transcription but mark it with low confidence.
+4. If a move is crossed out and rewritten, use the rewritten version and note it.
+${half==='LEFT'?'5. If you can read player names at the top, include them in the "players" field.\n':''}
+OUTPUT FORMAT (JSON ONLY):
+{
+  "moves": [
+    {"moveNumber": 1, "whiteRaw": "e4", "blackRaw": "e5", "whiteConf": 0.98, "blackConf": 0.99},
+    {"moveNumber": 2, "whiteRaw": "Nc3", "blackRaw": "Mc6", "whiteConf": 0.9, "blackConf": 0.5}
+  ],
+  ${half==='LEFT'?'"players": {"white": "Name or null", "black": "Name or null"},\n  ':''}"notes": ["Row 12 Black move unclear, could be Ne7 or Nc7"]
+}
 
-Output ONLY valid PGN.`;
+RULES:
+- whiteRaw/blackRaw: exactly what you see, including x, +, #, ?, etc.
+- If a move is unreadable, set it to null and explain in notes.
+- If a row has a game result (1-0, 0-1, 1/2) instead of a move, skip it and note it.
+- Castling: write as O-O or O-O-O regardless of how the child wrote it (0-0, oo, etc.)
+- Do NOT try to enforce legality or fix notation.
+- Do NOT output PGN, text, or commentary outside this JSON.`;
 
-  const rightPrompt=`You are an expert chess notation reader. This is the RIGHT half of a US Chess Federation scoresheet with handwritten moves written by a child.
+  const leftPrompt=ocrPrompt('LEFT','1-30');
 
-This half contains moves 31-60 (the CONTINUATION of the game). Each row has a move number, White's move on the left, and Black's move on the right.
-
-YOU MUST:
-- Read EVERY numbered row that has handwriting, top to bottom.
-- The first move number is 31. Output moves starting with 31.
-- If a move is hard to read, give your best guess — do not skip it.
-- Use standard algebraic notation (e.g. e4, Nf3, Bxc6, O-O, exd5, Qd1+).
-- Common child handwriting confusions: N↔M, B↔P, c↔e, 1↔l, K↔R, x↔+, f↔t, 5↔S, a↔o, d↔cl, 6↔b.
-- Do NOT add a game result. Do NOT invent moves for blank rows.
-- After the moves, add a { comment } listing any moves you were uncertain about.
-
-Output ONLY valid PGN (move numbers and moves only, no headers).`;
+  const rightPrompt=ocrPrompt('RIGHT','31-60');
 
   try{
     // Send both halves in parallel
@@ -566,27 +569,28 @@ Output ONLY valid PGN (move numbers and moves only, no headers).`;
     const leftData=await leftRes.json();
     const rightData=await rightRes.json();
 
-    const clean=t=>(t||'').trim().replace(/^```[^\n]*\n?/,'').replace(/```$/,'').trim();
     // Gemini 2.5 Pro returns "thought" parts before the actual answer — skip them
     const extractText=d=>{const ps=d.candidates?.[0]?.content?.parts||[];const real=ps.filter(p=>!p.thought);return real.map(p=>p.text||'').join('');};
-    const leftPgn=clean(extractText(leftData));
-    const rightPgn=clean(extractText(rightData));
+    const parseJSON=t=>{const c=t.trim().replace(/^```json?\s*\n?/,'').replace(/\n?```\s*$/,'').trim();try{return JSON.parse(c);}catch(e){const m=t.match(/\{[\s\S]*\}/);if(m)try{return JSON.parse(m[0]);}catch(e2){}return null;}};
 
-    // Merge: left PGN has headers + moves 1-30, right PGN has moves 31+
-    // Strip comments from left side, combine, keep comments from both at end
-    const leftComments=(leftPgn.match(/\{[^}]*\}/g)||[]).join(' ');
-    const rightComments=(rightPgn.match(/\{[^}]*\}/g)||[]).join(' ');
-    const leftClean=leftPgn.replace(/\{[^}]*\}/g,'').replace(/1-0|0-1|1\/2-1\/2|\*/g,'').trim();
-    const rightClean=rightPgn.replace(/\[.*?\]\s*/g,'').replace(/\{[^}]*\}/g,'').replace(/1-0|0-1|1\/2-1\/2|\*/g,'').trim();
+    const leftOCR=parseJSON(extractText(leftData));
+    const rightOCR=parseJSON(extractText(rightData));
 
-    let pgn=leftClean;
-    if(rightClean) pgn+='\n'+rightClean;
-    const allComments=[leftComments,rightComments].filter(c=>c).join(' ');
-    if(allComments) pgn+='\n'+allComments;
+    // Merge OCR results into flat moves array with confidence
+    const headers={};
+    if(leftOCR?.players?.white&&leftOCR.players.white!=='null')headers.White=leftOCR.players.white;
+    if(leftOCR?.players?.black&&leftOCR.players.black!=='null')headers.Black=leftOCR.players.black;
+    const movesWithConf=[];
+    for(const src of[leftOCR,rightOCR]){
+      if(!src?.moves)continue;
+      for(const m of src.moves){
+        if(m.whiteRaw)movesWithConf.push({san:m.whiteRaw,conf:m.whiteConf??0.5});
+        if(m.blackRaw)movesWithConf.push({san:m.blackRaw,conf:m.blackConf??0.5});
+      }
+    }
+    const ocrNotes=[...(leftOCR?.notes||[]),...(rightOCR?.notes||[])];
 
-    // Guard: if OCR returned no usable text, show error
-    const testParsed=parsePGN(pgn);
-    if(!testParsed.moves.length){
+    if(!movesWithConf.length){
       showPGNUpload();
       const taE=document.getElementById('pgn-text');
       if(taE){taE.value='';taE.placeholder='No moves detected — try re-scanning';}
@@ -595,12 +599,16 @@ Output ONLY valid PGN (move numbers and moves only, no headers).`;
       return;
     }
 
+    // Show raw OCR in textarea while validating
     showPGNUpload();
+    let rawPGN='';for(const[k,v]of Object.entries(headers))rawPGN+='['+k+' "'+v+'"]\n';
+    if(rawPGN)rawPGN+='\n';
+    for(let i=0;i<movesWithConf.length;i++){if(i%2===0)rawPGN+=(i>0?' ':'')+((i/2)+1)+'. ';else rawPGN+=' ';rawPGN+=movesWithConf[i].san;}
     let taF=document.getElementById('pgn-text');
-    if(taF)taF.value=pgn;
+    if(taF)taF.value=rawPGN;
     document.getElementById('modal-icon').textContent='🔍';
     document.getElementById('modal-sub').textContent='Validating moves against chess rules...';
-    const correctedPGN=await validateAndCorrectPGN(pgn,function(msg){document.getElementById('modal-sub').textContent=msg;});
+    const correctedPGN=await validateAndCorrectMoves(movesWithConf,headers,ocrNotes,function(msg){document.getElementById('modal-sub').textContent=msg;});
     taF=document.getElementById('pgn-text');
     if(taF)taF.value=correctedPGN;
     document.getElementById('modal-icon').textContent='✅';
@@ -648,23 +656,35 @@ function getAllLegalSANs(tc,b,ca,ep){
   return[...new Set(sans)];
 }
 
-async function askGeminiCorrection(bad,fen,legals,tc,idx){
+async function askGeminiCorrection(bad,conf,fen,legals,tc,idx){
   const key=localStorage.getItem('google_api_key');if(!key)return null;
   const url='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key='+key;
   const mn=Math.floor(idx/2)+1,side=tc==='w'?'White':'Black';
+  const confPct=Math.round((conf||0.5)*100);
   const prompt=`You are correcting OCR errors from a child's handwritten chess scoresheet.
 
-Position (FEN): ${fen}
-Move ${mn} (${side} to play): OCR read "${bad}" but this is NOT a legal move.
+Current position (FEN): ${fen}
+Side to move: ${side}
+Move number: ${mn}
 
-Legal moves: ${legals.join(', ')}
+Original handwritten / OCR string: "${bad}" (OCR confidence: ${confPct}%)
+
+This string is NOT a legal move in this position.
+Legal moves in SAN are: ${legals.join(', ')}
 
 Common child handwriting mix-ups: N↔M, B↔P, c↔e, 1↔l, K↔R, x↔+, f↔t, 5↔S, a↔o, d↔cl, 6↔b, 3↔8, h↔b, g↔q, 7↔1.
 
-Which legal move did the child most likely write? Consider visual similarity of characters and chess sense.
-Respond with ONLY the corrected move in algebraic notation. Nothing else.`;
+TASK:
+- Pick the ONE legal move the child most likely intended, based on:
+  - visual similarity to the handwritten/OCR string,
+  - normal chess sense for this position (reasonable development, recaptures, etc.).
+- If several moves are plausible, prefer the one with the smallest character change from the bad string.
+
+FORMAT:
+- Respond with ONLY the corrected move in standard algebraic notation (SAN), e.g. Nf3, Rxe5+, Qb7#.
+- Do NOT include move numbers, explanations, or any other text.`;
   try{
-    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0,maxOutputTokens:20}})});
+    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.1,maxOutputTokens:20}})});
     if(!res.ok)return null;const data=await res.json();
     const ps=data.candidates?.[0]?.content?.parts||[];const real=ps.filter(p=>!p.thought);
     const raw=(real.map(p=>p.text||'').join('')).trim();
@@ -679,9 +699,10 @@ Respond with ONLY the corrected move in algebraic notation. Nothing else.`;
   }catch(e){return null;}
 }
 
-async function validateAndCorrectPGN(pgnText,statusCb){
-  const pgn=parsePGN(pgnText);const moves=[...pgn.moves];
-  if(!moves.length)return pgnText;
+async function validateAndCorrectMoves(movesWithConf,headers,ocrNotes,statusCb){
+  const moves=movesWithConf.map(m=>m.san);
+  const confs=movesWithConf.map(m=>m.conf);
+  if(!moves.length)return'';
   // Save global state
   const sb=board.map(r=>[...r]),st=turn,sc={...cast},se=epT;
   initB();let cb=board.map(r=>[...r]),cc={wK:1,wQ:1,bK:1,bQ:1},ce=null,ct='w';
@@ -697,11 +718,11 @@ async function validateAndCorrectPGN(pgnText,statusCb){
       const legals=getAllLegalSANs(ct,cb,cc,ce);
       let guess=null;
       if(legals.length){
-        guess=await askGeminiCorrection(moves[i],fen,legals,ct,i);
+        guess=await askGeminiCorrection(moves[i],confs[i],fen,legals,ct,i);
         if(guess){board=cb.map(r=>[...r]);cast={...cc};epT=ce;mv=sanToMove(guess,ct,board);}
       }
       if(mv){corrections.push({i,was:moves[i],now:guess});corrected[i]=guess;fixes++;}
-      else{corrections.push({i,was:moves[i],now:guess||null});break;} // can't advance board, stop validating but keep all moves
+      else{corrections.push({i,was:moves[i],now:guess||null});break;}
     }else if(!mv){corrections.push({i,was:moves[i],now:null});break;}
 
     // Advance board state (only reached if move is valid)
@@ -719,9 +740,8 @@ async function validateAndCorrectPGN(pgnText,statusCb){
   board=sb;turn=st;cast=sc;epT=se;
 
   // Rebuild PGN
-  let hdr='';for(const[k,v]of Object.entries(pgn.headers))hdr+='['+k+' "'+v+'"]\n';
+  let hdr='';for(const[k,v]of Object.entries(headers))hdr+='['+k+' "'+v+'"]\n';
   let mt='';for(let i=0;i<corrected.length;i++){if(i%2===0)mt+=(i>0?' ':'')+((i/2)+1)+'. ';else mt+=' ';mt+=corrected[i];}
-  const origComments=(pgnText.match(/\{[^}]*\}/g)||[]).join(' ');
   if(corrections.length){
     const applied=corrections.filter(c=>corrected[c.i]!==moves[c.i]);
     const unresolved=corrections.filter(c=>corrected[c.i]===moves[c.i]);
@@ -730,7 +750,7 @@ async function validateAndCorrectPGN(pgnText,statusCb){
     if(unresolved.length)notes.push('Unresolved: '+unresolved.map(c=>{const mn=Math.floor(c.i/2)+1;const s=c.i%2===0?'':'...';return mn+s+'. '+c.was+(c.now?' (AI suggested: '+c.now+')':'');}).join(', '));
     mt+='\n{ AI: '+notes.join(' | ')+' }';
   }
-  if(origComments)mt+='\n'+origComments;
+  if(ocrNotes.length)mt+='\n{ OCR notes: '+ocrNotes.join('; ')+' }';
   return(hdr?hdr+'\n':'')+mt;
 }
 
