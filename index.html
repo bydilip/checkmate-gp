@@ -228,7 +228,7 @@ function initSF(){
     sf=worker;
     initTimer=setTimeout(()=>{if(!sfOk){sf=null;goFB();}},20000);
     sf.onmessage=function(e){
-      const l=typeof e.data==='string'?e.data:'';
+      const d=e.data;const l=typeof d==='string'?d:(d&&typeof d.data==='string')?d.data:(d&&typeof d.cmd==='string')?d.cmd:'';
       if(l==='uciok')sf.postMessage('isready');
       else if(l==='readyok'){clearTimeout(initTimer);sfOk=true;el.className='engine-status ready';el.innerHTML='<span class="edot"></span>Stockfish 18 Ready';setTimeout(()=>el.style.opacity='0',2500);updPanel();}
       else if(sfExploreMode&&l.startsWith('info')&&l.includes(' multipv ')){sfExploreLines.push(l);}
@@ -252,6 +252,7 @@ function initSF(){
 function sfSkill(elo){if(elo<=200)return 0;if(elo<=400)return 0;if(elo<=600)return 2;if(elo<=800)return 4;if(elo<=1000)return 6;if(elo<=1200)return 8;if(elo<=1500)return 11;if(elo<=1800)return 14;if(elo<=2000)return 16;if(elo<=2300)return 17;if(elo<=2600)return 19;return 20;}
 function cfgSF(elo){if(!sf||!sfOk)return;sf.postMessage('stop');sf.postMessage('setoption name Skill Level value '+sfSkill(elo));sf.postMessage('setoption name UCI_LimitStrength value true');sf.postMessage('setoption name UCI_Elo value '+Math.max(1320,Math.min(3190,elo)));}
 function askSF(fen){return new Promise(r=>{if(!sf||!sfOk){r(null);return;}
+  sf.postMessage('stop');sfCb=null;
   sf.postMessage('setoption name Skill Level value '+sfSkill(aiElo));
   sf.postMessage('setoption name UCI_LimitStrength value true');
   sf.postMessage('setoption name UCI_Elo value '+Math.max(1320,Math.min(3190,aiElo)));
@@ -369,7 +370,7 @@ function doMove(m,pr=null){
   if(gMode==='vsAI'&&turn==='b'&&!gameOver){aiOn=true;rStat();
     if(sfOk&&!useFB){
       askSF(toFEN()).then(u=>{
-        if(u&&!gameOver){let mv=uci2mv(u);if(mv){// Apply ELO weakening even on top of Stockfish
+        if(!gameOver){let mv=u?uci2mv(u):null;if(mv){// Apply ELO weakening even on top of Stockfish
           const wk=weakenMove(mv);if(wk)mv=wk;const p=mv._pr||null;delete mv._pr;doMove(mv,p);}else{const fb=fbAI();if(fb)doMove(fb,fb.promotion?'Q':null);}}
         aiOn=false;rStat();
       });
