@@ -228,7 +228,7 @@ function initSF(){
     sf=worker;
     initTimer=setTimeout(()=>{if(!sfOk){sf=null;goFB();}},20000);
     sf.onmessage=function(e){
-      const d=e.data;const l=typeof d==='string'?d:(d&&typeof d.data==='string')?d.data:(d&&typeof d.cmd==='string')?d.cmd:'';
+      const l=typeof e.data==='string'?e.data:'';
       if(l==='uciok')sf.postMessage('isready');
       else if(l==='readyok'){clearTimeout(initTimer);sfOk=true;el.className='engine-status ready';el.innerHTML='<span class="edot"></span>Stockfish 18 Ready';setTimeout(()=>el.style.opacity='0',2500);updPanel();}
       else if(sfExploreMode&&l.startsWith('info')&&l.includes(' multipv ')){sfExploreLines.push(l);}
@@ -238,15 +238,17 @@ function initSF(){
     sf.postMessage('uci');
   }
   function goFB(){useFB=true;el.className='engine-status ready';el.innerHTML='<span class="edot"></span>Engine Ready';setTimeout(()=>el.style.opacity='0',2500);updPanel();}
-  // Primary: fetch JS, patch WASM filename to absolute CDN URL, create Blob Worker
-  // (importScripts+locateFile fails because Emscripten redefines Module, losing our override)
+  // nmrugg/stockfish.js reads self.location.hash to find the WASM binary path.
+  // For Blob Workers we append the WASM CDN URL as a hash fragment.
+  const sfWASM=sfBase+'stockfish-18-lite-single.wasm';
+  // Primary: fetch JS → Blob Worker with #wasmUrl hash
   fetch(sfJS).then(r=>{if(!r.ok)throw 0;return r.text();}).then(code=>{
-    wireUp(new Worker(URL.createObjectURL(new Blob([code.replace(/stockfish-18-lite-single\.wasm/g,sfBase+'stockfish-18-lite-single.wasm')],{type:'application/javascript'}))));
+    wireUp(new Worker(URL.createObjectURL(new Blob([code],{type:'application/javascript'}))+'#'+sfWASM));
   }).catch(()=>{
-    // Fallback: importScripts wrapper (in case fetch is blocked but importScripts works)
+    // Fallback: importScripts wrapper with same hash trick
     try{
-      const loader='var Module={locateFile:function(p){return "'+sfBase+'"+p;}};importScripts("'+sfJS+'");';
-      wireUp(new Worker(URL.createObjectURL(new Blob([loader],{type:'application/javascript'}))));
+      const loader='importScripts("'+sfJS+'");';
+      wireUp(new Worker(URL.createObjectURL(new Blob([loader],{type:'application/javascript'}))+'#'+sfWASM));
     }catch(e){goFB();}
   });
 }
