@@ -486,11 +486,12 @@ async function scanWithGemini(dataUrl){
   const prompt=`You are an expert chess notation reader. This is a photograph of a US Chess Federation scoresheet with handwritten moves written by a child. The handwriting may be messy or uneven.
 
 CRITICAL — SCORESHEET LAYOUT:
-A US Chess scoresheet has numbered rows (1, 2, 3...). Each row has TWO columns: White's move on the LEFT and Black's move on the RIGHT. Games typically last 30-60+ moves. If the sheet has a second set of columns further right, the game CONTINUES there (e.g. rows 1-30 on the left half, rows 31-60 on the right half).
+This scoresheet has TWO halves side by side. The LEFT half has rows 1-30 and the RIGHT half has rows 31-60. BOTH halves have handwritten moves. You MUST read BOTH halves — first the left half top to bottom, then the right half top to bottom. The game likely has 40-60 total moves.
 
 YOU MUST:
-- Read EVERY numbered row that has handwriting, top to bottom, left half then right half.
-- Do NOT stop early. This game has approximately 30 moves. Read ALL of them.
+- First: read ALL rows on the LEFT half (rows 1-30) top to bottom.
+- Then: read ALL rows on the RIGHT half (rows 31-60) top to bottom. Do NOT skip the right half.
+- Do NOT stop after the left half. The game CONTINUES on the right half.
 - If a move is hard to read, give your best guess — do not skip it.
 - Use standard algebraic notation (e.g. e4, Nf3, Bxc6, O-O, exd5, Qd1+).
 - Common child handwriting confusions: N↔M, B↔P, c↔e, 1↔l, K↔R, x↔+, f↔t, 5↔S, a↔o, d↔cl, 6↔b.
