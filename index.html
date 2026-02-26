@@ -483,18 +483,21 @@ async function scanWithGemini(dataUrl){
   const mimeType=mimeMatch[1];
   const base64Data=mimeMatch[2];
 
-  const prompt=`This is a US Chess scoresheet with handwritten moves. The handwriting may be from a child so it could be messy or uneven. The sheet may have multiple columns.
+  const prompt=`You are an expert chess notation reader. This is a photograph of a US Chess Federation scoresheet with handwritten moves. The handwriting is from a child and may be messy, uneven, or hard to read.
 
-Please read the moves and return them as a PGN string.
-If a symbol is unclear, infer the most likely legal move based on the game so far and note any uncertainties in a comment at the end.
+IMPORTANT: Look at the ENTIRE scoresheet carefully. US Chess scoresheets have TWO sides — White moves on the LEFT column and Black moves on the RIGHT column for each row. Each numbered row has BOTH a White move and a Black move. If the sheet has multiple column pairs, the game continues across them (e.g. moves 1-30 in the first pair, moves 31+ in the next pair).
 
-Rules:
-- Read EVERY column on the sheet from left to right. The game continues across columns (e.g. left column may have moves 1-30, right column continues with moves 31+).
-- Transcribe ONLY rows where handwriting is actually present. Skip blank/empty rows.
-- Use standard algebraic notation (e.g. Nf3, Bxc6, O-O, exd5).
-- If you can read player names, include [White "Name"] and [Black "Name"] PGN headers.
-- Do NOT invent moves for empty rows. Do NOT add a game result (1-0, 0-1, etc.).
-- Output the PGN moves, then add a { comment } at the end listing any moves you were uncertain about.`;
+Your task:
+1. Read EVERY numbered row that has handwriting. Do not stop early.
+2. For each row, read the White move (left) and Black move (right).
+3. Use standard algebraic notation (e.g. e4, Nf3, Bxc6, O-O, exd5).
+4. If a letter is unclear, consider what legal chess moves are possible in that position and pick the most likely one.
+5. Common child handwriting confusions: N↔M, B↔P, c↔e, 1↔l, K↔R, x↔+, f↔t, 5↔S.
+6. If you can read player names at the top, include [White "Name"] and [Black "Name"] headers.
+7. Do NOT add a game result. Do NOT invent moves for blank rows.
+8. After the moves, add a { comment } listing any moves you were uncertain about.
+
+Output ONLY valid PGN.`;
 
   const geminiUrl='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key;
 
@@ -507,7 +510,7 @@ Rules:
           {text:prompt},
           {inline_data:{mime_type:mimeType,data:base64Data}}
         ]}],
-        generationConfig:{temperature:0,maxOutputTokens:2048}
+        generationConfig:{temperature:0,maxOutputTokens:4096}
       })
     });
     if(!res.ok){const e=await res.json();throw new Error(e.error?.message||res.statusText);}
@@ -516,11 +519,22 @@ Rules:
 
     // Pass 2: validate and correct the raw OCR output
     if(ta)ta.placeholder='Validating moves...';
-    const fixPrompt=`Below is a PGN transcribed via OCR from a handwritten US Chess scoresheet. It likely contains errors from misread handwriting (e.g. "Bc4" misread as "Be4", "Nf3" misread as "Mf3", lowercase L misread as 1, etc.).
+    const fixPrompt=`You are an expert chess player and notation validator. Below is a PGN transcribed via OCR from a child's handwritten US Chess scoresheet. It likely contains errors from misread handwriting.
 
-Play through the game move by move. For each move, check if it is a legal chess move given the current board position. If a move is illegal, correct it to the most likely legal move that visually resembles the OCR text. If no reasonable correction exists, stop there.
+Common OCR mistakes in chess notation:
+- "Bc4" misread as "Be4" or "Pc4"
+- "Nf3" misread as "Mf3" or "Nf8"
+- Lowercase L misread as 1, or 5 as S
+- Castling "O-O" misread as "0-0" or "o-o"
+- Capture "x" missed or added incorrectly
 
-Return ONLY the corrected PGN. At the end, add a { comment } noting any moves you corrected or are still uncertain about.
+Your task:
+1. Start from the initial chess position and play through EVERY move.
+2. For each move, verify it is legal on the current board.
+3. If a move is illegal, find the most likely legal move that looks similar in handwriting.
+4. Do NOT skip or drop moves — the total number of moves should stay the same or very close.
+5. If no reasonable correction exists for a move, stop there.
+6. Return the corrected PGN. At the end, add a { comment } noting which moves you corrected.
 
 Raw OCR PGN:
 ${rawPgn}`;
@@ -530,7 +544,7 @@ ${rawPgn}`;
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         contents:[{parts:[{text:fixPrompt}]}],
-        generationConfig:{temperature:0,maxOutputTokens:2048}
+        generationConfig:{temperature:0,maxOutputTokens:4096}
       })
     });
     if(!res2.ok){const e=await res2.json();throw new Error(e.error?.message||res2.statusText);}
