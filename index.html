@@ -413,6 +413,7 @@ function flipBoard(){flipped=!flipped;rBoard();}
 let replayMode=false,replayPositions=[],replayMoves=[],replayIdx=0,replayHeaders={},autoPlayTimer=null;
 
 function showPGNUpload(){
+  const prev=(document.getElementById('pgn-text')||{}).value||'';
   document.getElementById('modal-icon').textContent='📡';
   document.getElementById('modal-title').textContent='TELEMETRY UPLOAD';
   document.getElementById('modal-sub').textContent='Feed race data to the system';
@@ -424,6 +425,7 @@ function showPGNUpload(){
     <div style="text-align:center;margin:8px 0"><span style="color:var(--silver-dim);font-size:11px;letter-spacing:2px">— OR —</span></div>
     <label class="pgn-file-btn" onclick="document.getElementById('pgn-file-input').click()">📁 UPLOAD RACE FILE</label>
     <button class="modal-btn secondary" onclick="closeModal()" style="margin-top:8px">✕ ABORT</button>`;
+  if(prev){const t=document.getElementById('pgn-text');if(t)t.value=prev;}
   document.getElementById('modal-overlay').style.display='flex';
 }
 function loadPGNFromText(){const t=document.getElementById('pgn-text').value.trim();if(t)enterReplay(t);}
