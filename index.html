@@ -483,16 +483,18 @@ async function scanWithGemini(dataUrl){
   const mimeType=mimeMatch[1];
   const base64Data=mimeMatch[2];
 
-  const prompt=`This is a photo of a handwritten chess score sheet. The handwriting is from a child so it may be messy or uneven. The sheet may have multiple columns — read ALL columns from left to right, continuing the move numbers across columns.
+  const prompt=`This is a US Chess scoresheet with handwritten moves. The handwriting may be from a child so it could be messy or uneven. The sheet may have multiple columns.
+
+Please read the moves and return them as a PGN string.
+If a symbol is unclear, infer the most likely legal move based on the game so far and note any uncertainties in a comment at the end.
 
 Rules:
-- Read EVERY column on the sheet. The game continues across columns (e.g. left column may have moves 1-30, right column continues with moves 31+). Do NOT stop after the first column.
+- Read EVERY column on the sheet from left to right. The game continues across columns (e.g. left column may have moves 1-30, right column continues with moves 31+).
 - Transcribe ONLY rows where handwriting is actually present. Skip blank/empty rows.
-- For messy handwriting, use your best guess for what legal chess move it could be.
 - Use standard algebraic notation (e.g. Nf3, Bxc6, O-O, exd5).
 - If you can read player names, include [White "Name"] and [Black "Name"] PGN headers.
 - Do NOT invent moves for empty rows. Do NOT add a game result (1-0, 0-1, etc.).
-- Output only the PGN moves, no explanation.`;
+- Output the PGN moves, then add a { comment } at the end listing any moves you were uncertain about.`;
 
   const geminiUrl='https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+key;
 
@@ -514,11 +516,11 @@ Rules:
 
     // Pass 2: validate and correct the raw OCR output
     if(ta)ta.placeholder='Validating moves...';
-    const fixPrompt=`Below is a PGN transcribed via OCR from a handwritten chess score sheet. It likely contains errors from misread handwriting (e.g. "Bc4" misread as "Be4", "Nf3" misread as "Mf3", lowercase L misread as 1, etc.).
+    const fixPrompt=`Below is a PGN transcribed via OCR from a handwritten US Chess scoresheet. It likely contains errors from misread handwriting (e.g. "Bc4" misread as "Be4", "Nf3" misread as "Mf3", lowercase L misread as 1, etc.).
 
 Play through the game move by move. For each move, check if it is a legal chess move given the current board position. If a move is illegal, correct it to the most likely legal move that visually resembles the OCR text. If no reasonable correction exists, stop there.
 
-Return ONLY the corrected PGN with no explanation.
+Return ONLY the corrected PGN. At the end, add a { comment } noting any moves you corrected or are still uncertain about.
 
 Raw OCR PGN:
 ${rawPgn}`;
