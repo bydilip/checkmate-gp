@@ -504,7 +504,33 @@ Rules:
     });
     if(!res.ok){const e=await res.json();throw new Error(e.error?.message||res.statusText);}
     const data=await res.json();
-    const pgn=(data.choices?.[0]?.message?.content||'').trim().replace(/^```[^\n]*\n?/,'').replace(/```$/,'').trim();
+    const rawPgn=(data.choices?.[0]?.message?.content||'').trim().replace(/^```[^\n]*\n?/,'').replace(/```$/,'').trim();
+
+    // Pass 2: validate and correct the raw OCR output
+    if(ta)ta.placeholder='Validating moves...';
+    const fixPrompt=`Below is a PGN transcribed via OCR from a handwritten chess score sheet. It likely contains errors from misread handwriting (e.g. "Bc4" misread as "Be4", "Nf3" misread as "Mf3", lowercase L misread as 1, etc.).
+
+Play through the game move by move. For each move, check if it is a legal chess move given the current board position. If a move is illegal, correct it to the most likely legal move that visually resembles the OCR text. If no reasonable correction exists, stop there.
+
+Return ONLY the corrected PGN with no explanation.
+
+Raw OCR PGN:
+${rawPgn}`;
+
+    const res2=await fetch('https://api.openai.com/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({
+        model:'gpt-4o',
+        max_tokens:2048,
+        temperature:0,
+        messages:[{role:'user',content:fixPrompt}]
+      })
+    });
+    if(!res2.ok){const e=await res2.json();throw new Error(e.error?.message||res2.statusText);}
+    const data2=await res2.json();
+    const pgn=(data2.choices?.[0]?.message?.content||'').trim().replace(/^```[^\n]*\n?/,'').replace(/```$/,'').trim();
+
     showPGNUpload();
     const taFilled=document.getElementById('pgn-text');
     if(taFilled)taFilled.value=pgn;
