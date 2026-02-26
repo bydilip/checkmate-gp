@@ -433,7 +433,7 @@ function loadPGNFromFile(ev){const file=ev.target.files[0];if(!file)return;const
 let _lastScanDataUrl=null;
 
 function triggerScan(){
-  const key=localStorage.getItem('google_api_key');
+  const key=localStorage.getItem('openai_api_key');
   if(!key)promptApiKey();
   else document.getElementById('scan-img-input').click();
 }
@@ -441,8 +441,8 @@ function triggerScan(){
 function promptApiKey(errorMsg){
   document.getElementById('modal-btns').innerHTML=`
     <div class="setting-group">
-      <div class="setting-label">Google API Key</div>
-      <input id="api-key-input" type="password" placeholder="AIza..." style="width:100%;background:var(--carbon);border:1px solid var(--carbon-light);border-radius:8px;color:var(--silver);font-family:monospace;font-size:12px;padding:10px;box-sizing:border-box;margin-bottom:8px">
+      <div class="setting-label">OpenAI API Key</div>
+      <input id="api-key-input" type="password" placeholder="sk-..." style="width:100%;background:var(--carbon);border:1px solid var(--carbon-light);border-radius:8px;color:var(--silver);font-family:monospace;font-size:12px;padding:10px;box-sizing:border-box;margin-bottom:8px">
       ${errorMsg?`<div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;color:#FF4444;letter-spacing:1px;text-align:left;margin-bottom:6px">${errorMsg}</div>`:''}
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--silver-dim);letter-spacing:1px;text-align:left">Saved in this browser only. Used for handwriting recognition.</div>
     </div>
@@ -453,9 +453,9 @@ function promptApiKey(errorMsg){
 function saveApiKey(){
   const k=(document.getElementById('api-key-input')||{}).value||'';
   if(!k.trim())return;
-  localStorage.setItem('google_api_key',k.trim());
+  localStorage.setItem('openai_api_key',k.trim());
   // If we have a previous image, re-scan it directly; otherwise open file picker
-  if(_lastScanDataUrl)scanWithGemini(_lastScanDataUrl);
+  if(_lastScanDataUrl)scanWithGPT(_lastScanDataUrl);
   else document.getElementById('scan-img-input').click();
 }
 
@@ -486,20 +486,20 @@ function handleScanImage(ev){
   const reader=new FileReader();
   reader.onload=function(e){
     _lastScanDataUrl=e.target.result;
-    scanWithGemini(_lastScanDataUrl);
+    scanWithGPT(_lastScanDataUrl);
   };
   reader.readAsDataURL(file);
 }
 
-async function scanWithGemini(dataUrl){
+async function scanWithGPT(dataUrl){
   const ta=document.getElementById('pgn-text');
   if(ta){ta.value='';ta.placeholder='Scanning score sheet...';}
   document.getElementById('modal-icon').textContent='⏳';
 
-  const key=localStorage.getItem('google_api_key');
-  const geminiUrl='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key='+key;
+  const key=localStorage.getItem('openai_api_key');
+  const gptUrl='https://api.openai.com/v1/chat/completions';
 
-  // Split image into left and right halves to avoid Gemini skipping the right side
+  // Split image into left and right halves for better OCR accuracy
   const halves=await splitImageInHalf(dataUrl);
 
   function extractBase64(dUrl){
@@ -546,21 +546,14 @@ RULES:
 
   try{
     // Send both halves in parallel
+    const gptBody=(prompt,img)=>JSON.stringify({
+      model:'gpt-4o',temperature:0,max_tokens:4096,
+      messages:[{role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:'data:'+img.mime+';base64,'+img.data,detail:'high'}}]}]
+    });
+    const gptHeaders={'Content-Type':'application/json','Authorization':'Bearer '+key};
     const [leftRes,rightRes]=await Promise.all([
-      fetch(geminiUrl,{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          contents:[{parts:[{text:leftPrompt},{inline_data:{mime_type:leftImg.mime,data:leftImg.data}}]}],
-          generationConfig:{temperature:0,maxOutputTokens:4096}
-        })
-      }),
-      fetch(geminiUrl,{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          contents:[{parts:[{text:rightPrompt},{inline_data:{mime_type:rightImg.mime,data:rightImg.data}}]}],
-          generationConfig:{temperature:0,maxOutputTokens:4096}
-        })
-      })
+      fetch(gptUrl,{method:'POST',headers:gptHeaders,body:gptBody(leftPrompt,leftImg)}),
+      fetch(gptUrl,{method:'POST',headers:gptHeaders,body:gptBody(rightPrompt,rightImg)})
     ]);
 
     if(!leftRes.ok){const e=await leftRes.json();throw new Error(e.error?.message||leftRes.statusText);}
@@ -569,8 +562,7 @@ RULES:
     const leftData=await leftRes.json();
     const rightData=await rightRes.json();
 
-    // Gemini 2.5 Pro returns "thought" parts before the actual answer — skip them
-    const extractText=d=>{const ps=d.candidates?.[0]?.content?.parts||[];const real=ps.filter(p=>!p.thought);return real.map(p=>p.text||'').join('');};
+    const extractText=d=>(d.choices?.[0]?.message?.content||'');
     const parseJSON=t=>{const c=t.trim().replace(/^```json?\s*\n?/,'').replace(/\n?```\s*$/,'').trim();try{return JSON.parse(c);}catch(e){const m=t.match(/\{[\s\S]*\}/);if(m)try{return JSON.parse(m[0]);}catch(e2){}return null;}};
 
     const leftOCR=parseJSON(extractText(leftData));
@@ -618,9 +610,9 @@ RULES:
     document.getElementById('modal-icon').textContent='📡';
     console.error('Scan error:',err.message);
     const msg=err.message||'Unknown error';
-    const isAuthErr=msg.includes('API_KEY_INVALID')||msg.includes('PERMISSION_DENIED')||msg.includes('403');
-    if(isAuthErr){localStorage.removeItem('google_api_key');promptApiKey('Invalid API key — paste a new one and try again');}
-    else{localStorage.removeItem('google_api_key');promptApiKey(msg);}
+    const isAuthErr=msg.includes('invalid_api_key')||msg.includes('Incorrect API key')||msg.includes('401')||msg.includes('403');
+    if(isAuthErr){localStorage.removeItem('openai_api_key');promptApiKey('Invalid API key — paste a new one and try again');}
+    else{localStorage.removeItem('openai_api_key');promptApiKey(msg);}
   }
 }
 
@@ -656,9 +648,9 @@ function getAllLegalSANs(tc,b,ca,ep){
   return[...new Set(sans)];
 }
 
-async function askGeminiCorrection(bad,conf,fen,legals,tc,idx){
-  const key=localStorage.getItem('google_api_key');if(!key)return null;
-  const url='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key='+key;
+async function askGPTCorrection(bad,conf,fen,legals,tc,idx){
+  const key=localStorage.getItem('openai_api_key');if(!key)return null;
+  const url='https://api.openai.com/v1/chat/completions';
   const mn=Math.floor(idx/2)+1,side=tc==='w'?'White':'Black';
   const confPct=Math.round((conf||0.5)*100);
   const prompt=`You are correcting OCR errors from a child's handwritten chess scoresheet.
@@ -684,10 +676,9 @@ FORMAT:
 - Respond with ONLY the corrected move in standard algebraic notation (SAN), e.g. Nf3, Rxe5+, Qb7#.
 - Do NOT include move numbers, explanations, or any other text.`;
   try{
-    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.1,maxOutputTokens:20}})});
+    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'gpt-4o',temperature:0.1,max_tokens:20,messages:[{role:'user',content:prompt}]})});
     if(!res.ok)return null;const data=await res.json();
-    const ps=data.candidates?.[0]?.content?.parts||[];const real=ps.filter(p=>!p.thought);
-    const raw=(real.map(p=>p.text||'').join('')).trim();
+    const raw=(data.choices?.[0]?.message?.content||'').trim();
     // Match response against known legal moves (handles markdown, extra text, etc.)
     const clean=raw.replace(/[`'"*#!?+.\s]/g,'');
     if(legals.includes(clean))return clean;
@@ -718,7 +709,7 @@ async function validateAndCorrectMoves(movesWithConf,headers,ocrNotes,statusCb){
       const legals=getAllLegalSANs(ct,cb,cc,ce);
       let guess=null;
       if(legals.length){
-        guess=await askGeminiCorrection(moves[i],confs[i],fen,legals,ct,i);
+        guess=await askGPTCorrection(moves[i],confs[i],fen,legals,ct,i);
         if(guess){board=cb.map(r=>[...r]);cast={...cc};epT=ce;mv=sanToMove(guess,ct,board);}
       }
       if(mv){corrections.push({i,was:moves[i],now:guess});corrected[i]=guess;fixes++;}
