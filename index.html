@@ -238,16 +238,17 @@ function initSF(){
     sf.postMessage('uci');
   }
   function goFB(){useFB=true;el.className='engine-status ready';el.innerHTML='<span class="edot"></span>Engine Ready';setTimeout(()=>el.style.opacity='0',2500);updPanel();}
-  // Primary: importScripts wrapper — sets Module.locateFile so WASM resolves to CDN
-  try{
-    const loader='var Module={locateFile:function(p){return "'+sfBase+'"+p;}};importScripts("'+sfJS+'");';
-    wireUp(new Worker(URL.createObjectURL(new Blob([loader],{type:'application/javascript'}))));
-  }catch(e){
-    // Fallback: fetch JS, patch WASM filename to absolute CDN URL, create Blob Worker
-    fetch(sfJS).then(r=>{if(!r.ok)throw 0;return r.text();}).then(code=>{
-      wireUp(new Worker(URL.createObjectURL(new Blob([code.replace(/stockfish-18-lite-single\.wasm/g,sfBase+'stockfish-18-lite-single.wasm')],{type:'application/javascript'}))));
-    }).catch(()=>goFB());
-  }
+  // Primary: fetch JS, patch WASM filename to absolute CDN URL, create Blob Worker
+  // (importScripts+locateFile fails because Emscripten redefines Module, losing our override)
+  fetch(sfJS).then(r=>{if(!r.ok)throw 0;return r.text();}).then(code=>{
+    wireUp(new Worker(URL.createObjectURL(new Blob([code.replace(/stockfish-18-lite-single\.wasm/g,sfBase+'stockfish-18-lite-single.wasm')],{type:'application/javascript'}))));
+  }).catch(()=>{
+    // Fallback: importScripts wrapper (in case fetch is blocked but importScripts works)
+    try{
+      const loader='var Module={locateFile:function(p){return "'+sfBase+'"+p;}};importScripts("'+sfJS+'");';
+      wireUp(new Worker(URL.createObjectURL(new Blob([loader],{type:'application/javascript'}))));
+    }catch(e){goFB();}
+  });
 }
 function sfSkill(elo){if(elo<=200)return 0;if(elo<=400)return 0;if(elo<=600)return 2;if(elo<=800)return 4;if(elo<=1000)return 6;if(elo<=1200)return 8;if(elo<=1500)return 11;if(elo<=1800)return 14;if(elo<=2000)return 16;if(elo<=2300)return 17;if(elo<=2600)return 19;return 20;}
 function cfgSF(elo){if(!sf||!sfOk)return;sf.postMessage('stop');sf.postMessage('setoption name Skill Level value '+sfSkill(elo));sf.postMessage('setoption name UCI_LimitStrength value true');sf.postMessage('setoption name UCI_Elo value '+Math.max(1320,Math.min(3190,elo)));}
