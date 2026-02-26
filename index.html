@@ -583,8 +583,13 @@ Output ONLY valid PGN (move numbers and moves only, no headers).`;
     if(allComments) pgn+='\n'+allComments;
 
     showPGNUpload();
-    const taFilled=document.getElementById('pgn-text');
-    if(taFilled)taFilled.value=pgn;
+    let taF=document.getElementById('pgn-text');
+    if(taF)taF.value=pgn;
+    document.getElementById('modal-icon').textContent='🔍';
+    document.getElementById('modal-sub').textContent='Validating moves against chess rules...';
+    const correctedPGN=await validateAndCorrectPGN(pgn,function(msg){document.getElementById('modal-sub').textContent=msg;});
+    taF=document.getElementById('pgn-text');
+    if(taF)taF.value=correctedPGN;
     document.getElementById('modal-icon').textContent='✅';
     document.getElementById('modal-sub').textContent='Review moves then tap ⚡ INJECT DATA';
   }catch(err){
@@ -596,6 +601,108 @@ Output ONLY valid PGN (move numbers and moves only, no headers).`;
     if(isAuthErr){localStorage.removeItem('google_api_key');promptApiKey('Invalid API key — paste a new one and try again');}
     else{localStorage.removeItem('google_api_key');promptApiKey(msg);}
   }
+}
+
+// ═══ MOVE VALIDATION & AI CORRECTION ═══
+
+function toFENCustom(b,tc,ca,ep){
+  let f='';for(let r=0;r<8;r++){let e=0;for(let c=0;c<8;c++){const p=b[r][c];if(!p)e++;else{if(e){f+=e;e=0;}f+=p[0]==='w'?p[1]:p[1].toLowerCase();}}if(e)f+=e;if(r<7)f+='/';}
+  f+=' '+(tc==='w'?'w':'b')+' ';let cs='';if(ca.wK)cs+='K';if(ca.wQ)cs+='Q';if(ca.bK)cs+='k';if(ca.bQ)cs+='q';f+=(cs||'-')+' ';
+  if(ep)f+='abcdefgh'[ep[1]]+'87654321'[ep[0]];else f+='-';f+=' 0 1';return f;
+}
+
+function moveToSANBasic(m,b,tc){
+  if(m.castle==='K')return'O-O';if(m.castle==='Q')return'O-O-O';
+  const p=b[m.from[0]][m.from[1]],ty=p[1],F='abcdefgh',R='87654321',cap=b[m.to[0]][m.to[1]]||m.enPassant;
+  let s='';
+  if(ty==='P'){if(cap)s+=F[m.from[1]];s+=(cap?'x':'')+F[m.to[1]]+R[m.to[0]];if(m.promotion)s+='=Q';}
+  else{s+=ty;
+    let needFile=false,needRank=false;
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+      if(r===m.from[0]&&c===m.from[1])continue;
+      if(b[r][c]===tc+ty){const ms=lM(r,c,b);if(ms.some(x=>x.to[0]===m.to[0]&&x.to[1]===m.to[1])){if(c===m.from[1])needRank=true;else needFile=true;}}}
+    if(needFile)s+=F[m.from[1]];if(needRank)s+=R[m.from[0]];
+    if(cap)s+='x';s+=F[m.to[1]]+R[m.to[0]];}
+  return s;
+}
+
+function getAllLegalSANs(tc,b,ca,ep){
+  const sb=board.map(r=>[...r]),sc={...cast},se=epT;
+  board=b.map(r=>[...r]);cast={...ca};epT=ep;
+  const ms=aL(tc,board);
+  const sans=ms.map(m=>moveToSANBasic(m,b,tc));
+  board=sb;cast=sc;epT=se;
+  return[...new Set(sans)];
+}
+
+async function askGeminiCorrection(bad,fen,legals,tc,idx){
+  const key=localStorage.getItem('google_api_key');if(!key)return null;
+  const url='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key;
+  const mn=Math.floor(idx/2)+1,side=tc==='w'?'White':'Black';
+  const prompt=`You are correcting OCR errors from a child's handwritten chess scoresheet.
+
+Position (FEN): ${fen}
+Move ${mn} (${side} to play): OCR read "${bad}" but this is NOT a legal move.
+
+Legal moves: ${legals.join(', ')}
+
+Common child handwriting mix-ups: N↔M, B↔P, c↔e, 1↔l, K↔R, x↔+, f↔t, 5↔S, a↔o, d↔cl, 6↔b, 3↔8, h↔b, g↔q, 7↔1.
+
+Which legal move did the child most likely write? Consider visual similarity of characters and chess sense.
+Respond with ONLY the corrected move in algebraic notation. Nothing else.`;
+  try{
+    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0,maxOutputTokens:20}})});
+    if(!res.ok)return null;const data=await res.json();
+    return(data.candidates?.[0]?.content?.parts?.[0]?.text||'').trim().replace(/[`'".\s]/g,'')||null;
+  }catch(e){return null;}
+}
+
+async function validateAndCorrectPGN(pgnText,statusCb){
+  const pgn=parsePGN(pgnText);const moves=[...pgn.moves];
+  if(!moves.length)return pgnText;
+  // Save global state
+  const sb=board.map(r=>[...r]),st=turn,sc={...cast},se=epT;
+  initB();let cb=board.map(r=>[...r]),cc={wK:1,wQ:1,bK:1,bQ:1},ce=null,ct='w';
+  let corrected=[...moves],corrections=[],maxFix=10,fixes=0;
+
+  for(let i=0;i<moves.length;i++){
+    board=cb.map(r=>[...r]);cast={...cc};epT=ce;
+    let mv=sanToMove(moves[i],ct,board);
+
+    if(!mv&&fixes<maxFix){
+      if(statusCb)statusCb('Fixing move '+(Math.floor(i/2)+1)+'...');
+      const fen=toFENCustom(cb,ct,cc,ce);
+      const legals=getAllLegalSANs(ct,cb,cc,ce);
+      if(!legals.length){corrected=corrected.slice(0,i);break;}
+      const guess=await askGeminiCorrection(moves[i],fen,legals,ct,i);
+      if(guess){board=cb.map(r=>[...r]);cast={...cc};epT=ce;mv=sanToMove(guess,ct,board);}
+      if(mv){corrections.push({i,was:moves[i],now:guess});corrected[i]=guess;fixes++;}
+      else{corrections.push({i,was:moves[i],now:null});corrected=corrected.slice(0,i);break;}
+    }else if(!mv){corrected=corrected.slice(0,i);break;}
+
+    // Advance board state
+    const piece=board[mv.from[0]][mv.from[1]],ty=piece[1],co=piece[0];
+    if(ty==='K'){cc[co+'K']=0;cc[co+'Q']=0;}
+    if(ty==='R'){if(mv.from[0]===7&&mv.from[1]===0)cc.wQ=0;if(mv.from[0]===7&&mv.from[1]===7)cc.wK=0;if(mv.from[0]===0&&mv.from[1]===0)cc.bQ=0;if(mv.from[0]===0&&mv.from[1]===7)cc.bK=0;}
+    const cap=board[mv.to[0]][mv.to[1]];
+    if(cap&&cap[1]==='R'){if(mv.to[0]===0&&mv.to[1]===0)cc.bQ=0;if(mv.to[0]===0&&mv.to[1]===7)cc.bK=0;if(mv.to[0]===7&&mv.to[1]===0)cc.wQ=0;if(mv.to[0]===7&&mv.to[1]===7)cc.wK=0;}
+    const pr=mv._pr||(mv.promotion?'Q':null);if(mv._pr)delete mv._pr;
+    ce=mv.doublePush?[co==='w'?mv.to[0]+1:mv.to[0]-1,mv.to[1]]:null;
+    cb=aM(mv,board,pr);ct=ct==='w'?'b':'w';
+  }
+
+  // Restore global state
+  board=sb;turn=st;cast=sc;epT=se;
+
+  // Rebuild PGN
+  let hdr='';for(const[k,v]of Object.entries(pgn.headers))hdr+='['+k+' "'+v+'"]\n';
+  let mt='';for(let i=0;i<corrected.length;i++){if(i%2===0)mt+=(i>0?' ':'')+((i/2)+1)+'. ';else mt+=' ';mt+=corrected[i];}
+  const origComments=(pgnText.match(/\{[^}]*\}/g)||[]).join(' ');
+  if(corrections.length){
+    mt+='\n{ AI corrections: '+corrections.map(c=>{const mn=Math.floor(c.i/2)+1;const s=c.i%2===0?'':'...';return c.now?mn+s+'. "'+c.was+'" → '+c.now:mn+s+'. "'+c.was+'" unresolved';}).join('; ')+' }';
+  }
+  if(origComments)mt+='\n'+origComments;
+  return(hdr?hdr+'\n':'')+mt;
 }
 
 function parsePGN(pgn){
