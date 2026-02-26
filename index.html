@@ -667,7 +667,15 @@ Respond with ONLY the corrected move in algebraic notation. Nothing else.`;
     const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0,maxOutputTokens:20}})});
     if(!res.ok)return null;const data=await res.json();
     const ps=data.candidates?.[0]?.content?.parts||[];const real=ps.filter(p=>!p.thought);
-    return(real.map(p=>p.text||'').join('')).trim().replace(/[`'".\s]/g,'')||null;
+    const raw=(real.map(p=>p.text||'').join('')).trim();
+    // Match response against known legal moves (handles markdown, extra text, etc.)
+    const clean=raw.replace(/[`'"*#!?+.\s]/g,'');
+    if(legals.includes(clean))return clean;
+    // Search for any legal move in the raw response (longest first to prefer Nbd7 over Nd7)
+    const sorted=[...legals].sort((a,b)=>b.length-a.length);
+    for(const m of sorted){if(raw.includes(m))return m;}
+    // Last resort: return cleaned text and let sanToMove try
+    return clean||null;
   }catch(e){return null;}
 }
 
@@ -693,7 +701,7 @@ async function validateAndCorrectPGN(pgnText,statusCb){
         if(guess){board=cb.map(r=>[...r]);cast={...cc};epT=ce;mv=sanToMove(guess,ct,board);}
       }
       if(mv){corrections.push({i,was:moves[i],now:guess});corrected[i]=guess;fixes++;}
-      else{corrections.push({i,was:moves[i],now:null});break;} // can't advance board, stop validating but keep all moves
+      else{corrections.push({i,was:moves[i],now:guess||null});break;} // can't advance board, stop validating but keep all moves
     }else if(!mv){corrections.push({i,was:moves[i],now:null});break;}
 
     // Advance board state (only reached if move is valid)
@@ -715,7 +723,12 @@ async function validateAndCorrectPGN(pgnText,statusCb){
   let mt='';for(let i=0;i<corrected.length;i++){if(i%2===0)mt+=(i>0?' ':'')+((i/2)+1)+'. ';else mt+=' ';mt+=corrected[i];}
   const origComments=(pgnText.match(/\{[^}]*\}/g)||[]).join(' ');
   if(corrections.length){
-    mt+='\n{ AI corrections: '+corrections.map(c=>{const mn=Math.floor(c.i/2)+1;const s=c.i%2===0?'':'...';return c.now?mn+s+'. "'+c.was+'" → '+c.now:mn+s+'. "'+c.was+'" unresolved';}).join('; ')+' }';
+    const applied=corrections.filter(c=>corrected[c.i]!==moves[c.i]);
+    const unresolved=corrections.filter(c=>corrected[c.i]===moves[c.i]);
+    let notes=[];
+    if(applied.length)notes.push('Fixed: '+applied.map(c=>{const mn=Math.floor(c.i/2)+1;const s=c.i%2===0?'':'...';return mn+s+'. '+c.was+' → '+c.now;}).join(', '));
+    if(unresolved.length)notes.push('Unresolved: '+unresolved.map(c=>{const mn=Math.floor(c.i/2)+1;const s=c.i%2===0?'':'...';return mn+s+'. '+c.was+(c.now?' (AI suggested: '+c.now+')':'');}).join(', '));
+    mt+='\n{ AI: '+notes.join(' | ')+' }';
   }
   if(origComments)mt+='\n'+origComments;
   return(hdr?hdr+'\n':'')+mt;
