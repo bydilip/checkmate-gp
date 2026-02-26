@@ -483,19 +483,21 @@ async function scanWithGemini(dataUrl){
   const mimeType=mimeMatch[1];
   const base64Data=mimeMatch[2];
 
-  const prompt=`You are an expert chess notation reader. This is a photograph of a US Chess Federation scoresheet with handwritten moves. The handwriting is from a child and may be messy, uneven, or hard to read.
+  const prompt=`You are an expert chess notation reader. This is a photograph of a US Chess Federation scoresheet with handwritten moves written by a child. The handwriting may be messy or uneven.
 
-IMPORTANT: Look at the ENTIRE scoresheet carefully. US Chess scoresheets have TWO sides — White moves on the LEFT column and Black moves on the RIGHT column for each row. Each numbered row has BOTH a White move and a Black move. If the sheet has multiple column pairs, the game continues across them (e.g. moves 1-30 in the first pair, moves 31+ in the next pair).
+CRITICAL — SCORESHEET LAYOUT:
+A US Chess scoresheet has numbered rows (1, 2, 3...). Each row has TWO columns: White's move on the LEFT and Black's move on the RIGHT. Games typically last 30-60+ moves. If the sheet has a second set of columns further right, the game CONTINUES there (e.g. rows 1-30 on the left half, rows 31-60 on the right half).
 
-Your task:
-1. Read EVERY numbered row that has handwriting. Do not stop early.
-2. For each row, read the White move (left) and Black move (right).
-3. Use standard algebraic notation (e.g. e4, Nf3, Bxc6, O-O, exd5).
-4. If a letter is unclear, consider what legal chess moves are possible in that position and pick the most likely one.
-5. Common child handwriting confusions: N↔M, B↔P, c↔e, 1↔l, K↔R, x↔+, f↔t, 5↔S.
-6. If you can read player names at the top, include [White "Name"] and [Black "Name"] headers.
-7. Do NOT add a game result. Do NOT invent moves for blank rows.
-8. After the moves, add a { comment } listing any moves you were uncertain about.
+YOU MUST:
+- Read the ENTIRE sheet top to bottom, left half then right half.
+- Do NOT stop after a few moves. A typical game has 30-60 moves. If you only found 7-10 moves, you missed most of the sheet — look again.
+- For EVERY numbered row with handwriting, read both the White and Black move.
+- If a move is hard to read, give your best guess — do not skip it.
+- Use standard algebraic notation (e.g. e4, Nf3, Bxc6, O-O, exd5, Qd1+).
+- Common child handwriting confusions: N↔M, B↔P, c↔e, 1↔l, K↔R, x↔+, f↔t, 5↔S, a↔o.
+- If you can read player names at the top, include [White "Name"] and [Black "Name"] headers.
+- Do NOT add a game result. Do NOT invent moves for blank rows.
+- After the moves, add a { comment } listing any moves you were uncertain about.
 
 Output ONLY valid PGN.`;
 
