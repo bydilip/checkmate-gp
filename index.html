@@ -650,7 +650,7 @@ function getAllLegalSANs(tc,b,ca,ep){
 
 async function askGeminiCorrection(bad,fen,legals,tc,idx){
   const key=localStorage.getItem('google_api_key');if(!key)return null;
-  const url='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key;
+  const url='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key='+key;
   const mn=Math.floor(idx/2)+1,side=tc==='w'?'White':'Black';
   const prompt=`You are correcting OCR errors from a child's handwritten chess scoresheet.
 
