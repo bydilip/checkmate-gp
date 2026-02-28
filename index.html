@@ -76,37 +76,46 @@ body::after{content:'';position:fixed;top:-100px;left:50%;transform:translateX(-
 .history-scroll{display:flex;gap:4px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}.history-scroll::-webkit-scrollbar{display:none}
 .move-chip{background:var(--carbon-mid);border:1px solid var(--carbon-light);border-radius:4px;padding:4px 10px;font-family:'Barlow Condensed',sans-serif;font-size:12px;color:var(--silver-dim);white-space:nowrap;flex-shrink:0;letter-spacing:1px}
 .move-chip.latest{border-color:var(--ferrari-red);color:var(--ferrari-red);background:rgba(220,0,0,.08)}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(6px);padding:20px}
-.modal{background:var(--carbon-mid);border:1px solid var(--carbon-light);border-top:2px solid var(--ferrari-red);border-radius:12px;padding:28px 22px;width:100%;max-width:360px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.9);animation:mu .3s cubic-bezier(.34,1.56,.64,1)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(8px);padding:20px}
+.modal{background:linear-gradient(145deg,#101218,#050608);border:1px solid #2e323a;border-radius:22px;padding:22px 18px;width:100%;max-width:380px;text-align:center;box-shadow:0 14px 40px rgba(0,0,0,.85);animation:mu .3s cubic-bezier(.34,1.56,.64,1)}
 @keyframes mu{from{transform:translateY(40px) scale(.9);opacity:0}to{transform:none;opacity:1}}
 .modal-icon{font-size:48px;margin-bottom:10px}
-.modal-title{font-family:'Orbitron',monospace;font-size:22px;font-weight:800;color:var(--ferrari-red);margin-bottom:6px;letter-spacing:2px}
-.modal-sub{font-family:'Barlow Condensed',sans-serif;font-size:13px;color:var(--silver-dim);letter-spacing:2px;margin-bottom:20px;text-transform:uppercase}
+.modal-title{font-family:'Orbitron',monospace;font-size:16px;font-weight:800;color:var(--white-hot);margin-bottom:4px;letter-spacing:4px;text-transform:uppercase}
+.modal-sub{font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--silver-dim);letter-spacing:3px;margin-bottom:18px;text-transform:uppercase}
 .modal-btns{display:flex;flex-direction:column;gap:8px}
-.modal-btn{padding:13px;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:3px;font-weight:700;cursor:pointer;border:none;transition:all .2s;text-transform:uppercase}
-.modal-btn.primary{background:linear-gradient(135deg,var(--ferrari-red),var(--ferrari-dark));color:var(--carbon);box-shadow:0 4px 16px rgba(212,175,55,.15)}.modal-btn.primary:active{background:var(--ferrari-dark)}
-.modal-btn.secondary{background:transparent;border:1px solid var(--carbon-light);color:var(--silver-dim)}.modal-btn.secondary:active{border-color:var(--silver-dim);color:var(--white-hot)}
+.modal-btn{padding:13px;border-radius:999px;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:3px;font-weight:700;cursor:pointer;border:none;transition:all .2s;text-transform:uppercase}
+.modal-btn.primary{background:linear-gradient(135deg,#f3c64b,#f0b931);color:#000;box-shadow:0 12px 30px rgba(0,0,0,.9)}.modal-btn.primary:active{background:#f0b931}
+.modal-btn.secondary{background:transparent;border:1px solid #2b313d;color:var(--silver-dim);border-radius:999px}.modal-btn.secondary:active{border-color:var(--silver-dim);color:var(--white-hot)}
 .setting-group{text-align:left;margin-bottom:16px}
-.setting-label{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:3px;color:var(--silver-dim);text-transform:uppercase;margin-bottom:8px}
+.setting-label{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;color:var(--silver-dim);text-transform:uppercase;margin-bottom:8px}
 .elo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .elo-btn{padding:10px 4px;border-radius:6px;font-family:'Orbitron',monospace;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--carbon-light);background:var(--carbon);color:var(--silver-dim);transition:all .2s;text-align:center}
 .elo-btn.active{border-color:var(--ferrari-red);color:var(--ferrari-red);background:rgba(220,0,0,.1);box-shadow:0 0 10px rgba(220,0,0,.2)}
 .elo-btn:active{transform:scale(.95)}
-.dial-wrap{position:relative;width:220px;height:130px;margin:0 auto}
-.dial-needle{position:absolute;left:50%;bottom:23%;width:3px;height:65px;transform-origin:bottom center;background:var(--ferrari-red);border-radius:2px;margin-left:-1.5px;transition:transform 0.05s linear;pointer-events:none}
-.dial-knob{position:absolute;width:20px;height:20px;border-radius:50%;background:var(--ferrari-red);border:2px solid #000;top:-10px;left:50%;margin-left:-10px;box-shadow:0 2px 6px rgba(0,0,0,.5);pointer-events:none}
-.dial-hub{position:absolute;left:50%;bottom:23%;width:10px;height:10px;margin-left:-5px;margin-bottom:-5px;border-radius:50%;background:#333;border:1.5px solid var(--ferrari-red);pointer-events:none;z-index:2}
-.dial-value{font-family:'Orbitron',monospace;font-size:28px;font-weight:800;color:var(--ferrari-red);text-align:center;letter-spacing:2px;margin-top:8px}
-.dial-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--silver-dim);letter-spacing:3px;text-transform:uppercase;text-align:center}
-.dial-controls{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:6px}
-.dial-btn{width:40px;height:40px;border-radius:50%;border:1px solid var(--carbon-light);background:var(--carbon);color:var(--silver);font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:'Orbitron',monospace}
-.dial-btn:active{border-color:var(--ferrari-red);color:var(--ferrari-red);transform:scale(.92)}
+.dial-wrap{position:relative;width:148px;height:148px;margin:0 auto}
+.dial-gauge{width:148px;height:148px;border-radius:50%;background:conic-gradient(#4ad878 0deg,#4ad878 120deg,#f9cc52 120deg,#f9cc52 220deg,#ff6b6b 220deg,#ff6b6b 320deg,#4ad878 320deg);display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 12px rgba(0,0,0,.8),0 10px 25px rgba(0,0,0,.85)}
+.dial-gauge-inner{width:112px;height:112px;border-radius:50%;background:radial-gradient(circle at 30% 20%,rgba(255,255,255,.13),transparent 50%),#05070b;position:relative;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px}
+.dial-needle{position:absolute;width:52px;height:3px;background:#ffdd55;transform-origin:6px 50%;border-radius:4px;transform:rotate(-35deg);box-shadow:0 0 8px rgba(243,198,75,.7);pointer-events:none}
+.dial-hub{position:absolute;width:12px;height:12px;border-radius:50%;background:#11141a;border:2px solid #ffdd55;pointer-events:none;z-index:2}
+.dial-value{font-family:'Orbitron',monospace;font-size:26px;font-weight:800;color:var(--white-hot);letter-spacing:2px;position:relative;z-index:3}
+.dial-label{font-family:'Barlow Condensed',sans-serif;font-size:9px;color:var(--silver-dim);letter-spacing:3px;text-transform:uppercase;position:relative;z-index:3}
+.dial-controls{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:6px}
+.dial-btn{width:40px;height:40px;border-radius:999px;border:1px solid #2b313d;background:radial-gradient(circle at 30% 20%,rgba(255,255,255,.13),transparent 55%),#05070b;color:var(--silver);font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:'Orbitron',monospace}
+.dial-btn:active{border-color:#ffdd55;color:#ffdd55;transform:scale(.92)}
 .dial-range{display:flex;justify-content:space-between;width:80px}
 .dial-range span{font-family:'Orbitron',monospace;font-size:8px;color:var(--silver-dim)}
 .dial-hint{font-family:'Barlow Condensed',sans-serif;font-size:9px;color:var(--silver-dim);letter-spacing:2px;text-transform:uppercase;opacity:.5;margin-top:2px;text-align:center}
-.mode-row{display:flex;gap:8px;margin-bottom:12px}
-.mode-btn{flex:1;padding:14px 8px;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:2px;font-weight:700;cursor:pointer;border:1px solid var(--carbon-light);background:var(--carbon);color:var(--silver-dim);transition:all .2s;text-transform:uppercase;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px}
-.mode-btn .mode-icon{font-size:22px}.mode-btn.active{border-color:var(--ferrari-red);color:var(--white-hot);background:rgba(220,0,0,.12)}
+.dial-class-label{font-family:'Barlow Condensed',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:3px;color:var(--silver-dim)}
+.dial-class-value{font-family:'Orbitron',monospace;font-size:12px;text-transform:uppercase;letter-spacing:3px;color:var(--white-hot)}
+.dial-meta{font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--silver-dim);letter-spacing:1px;margin-top:4px}
+.gauge-row{display:flex;align-items:center;gap:16px}
+.gauge-controls-side{display:flex;flex-direction:column;gap:6px;flex:1}
+.mode-row{display:flex;gap:10px;margin-bottom:12px}
+.mode-btn{flex:1;padding:10px 12px;border-radius:16px;font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;font-weight:700;cursor:pointer;border:1px solid #2c313d;background:radial-gradient(circle at 30% 15%,rgba(255,255,255,.08),transparent 40%),#10131b;color:var(--silver-dim);transition:all .2s;text-transform:uppercase;text-align:left;display:flex;flex-direction:column;gap:4px}
+.mode-btn .mode-icon{font-size:22px}
+.mode-btn.active{border-color:rgba(240,185,49,.33);color:var(--white-hot);background:radial-gradient(circle at 30% 15%,rgba(255,255,255,.15),transparent 40%),#201018}
+.mode-pill{display:inline-block;align-self:flex-start;padding:3px 8px;border-radius:999px;font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;background:rgba(0,0,0,.55);color:var(--silver-dim)}
+.mode-meta{font-family:'Barlow Condensed',sans-serif;font-size:9px;color:var(--silver-dim);letter-spacing:1px}
 .promo-pieces{display:flex;justify-content:center;gap:10px;margin:14px 0}
 .promo-piece{width:60px;height:60px;cursor:pointer;background:var(--carbon);border:1px solid var(--carbon-light);border-radius:10px;padding:8px;display:flex;align-items:center;justify-content:center;transition:all .2s}
 .promo-piece:active{transform:scale(1.1);border-color:var(--ferrari-red)}.promo-piece svg{width:100%;height:100%}
@@ -395,10 +404,12 @@ function closeModal(){document.getElementById('modal-overlay').style.display='no
 let tM=null,tE=null;
 function showSettings(){
   document.getElementById('modal-icon').textContent='⚙️';
+  document.getElementById('modal-icon').style.fontSize='26px';
+  document.getElementById('modal-icon').style.marginBottom='4px';
   document.getElementById('modal-title').textContent='PIT WALL';
-  document.getElementById('modal-sub').textContent='Configure your race';
+  document.getElementById('modal-sub').textContent='Configure your race vs engine';
   const engName=sfOk&&!useFB?'Stockfish':'Engine';
-  document.getElementById('modal-btns').innerHTML=`<div class="setting-group"><div class="setting-label">Race Mode</div><div class="mode-row"><div class="mode-btn ${gMode==='vsAI'?'active':''}" onclick="selMode('vsAI')"><span class="mode-icon">🏎️</span>VS ${engName}</div><div class="mode-btn ${gMode==='2player'?'active':''}" onclick="selMode('2player')"><span class="mode-icon">👥</span>2 DRIVERS</div></div></div><div class="setting-group" id="elo-section"><div class="setting-label">${engName} Skill Level</div><div class="dial-wrap" id="dial-wrap"><svg id="dial-track" viewBox="0 0 220 130" style="width:100%;display:block"></svg><div class="dial-needle" id="dial-needle"><div class="dial-knob"></div></div><div class="dial-hub"></div></div><div class="dial-value" id="dial-value">${aiElo}</div><div class="dial-label" id="dial-skill-label"></div><div class="dial-controls"><div class="dial-btn" onclick="dialAdj(-50)">−</div><div style="text-align:center"><div class="dial-range"><span>100</span><span>3000</span></div><div class="dial-hint">drag needle or use ±</div></div><div class="dial-btn" onclick="dialAdj(50)">+</div></div></div><button class="modal-btn primary" onclick="applyS()" style="margin-top:8px">🏁 START RACE</button><button class="modal-btn secondary" onclick="closeModal()">Cancel</button>`;
+  document.getElementById('modal-btns').innerHTML=`<div class="setting-group"><div class="setting-label">Race Mode</div><div class="mode-row"><div class="mode-btn ${gMode==='vsAI'?'active':''}" onclick="selMode('vsAI')"><div class="mode-pill">Single driver</div><div style="font-size:12px;letter-spacing:3px;text-transform:uppercase;margin-top:2px">VS ${engName}</div><div class="mode-meta">Race the engine lap by lap</div></div><div class="mode-btn ${gMode==='2player'?'active':''}" onclick="selMode('2player')"><div class="mode-pill">Duel</div><div style="font-size:12px;letter-spacing:3px;text-transform:uppercase;margin-top:2px">2 DRIVERS</div><div class="mode-meta">Pass & play time attack</div></div></div></div><div class="setting-group" id="elo-section"><div class="setting-label">Engine Strength</div><div class="gauge-row"><div class="dial-wrap" id="dial-wrap"><div class="dial-gauge"><div class="dial-gauge-inner"><div class="dial-needle" id="dial-needle"></div><div class="dial-hub"></div><div class="dial-value" id="dial-value">${aiElo}</div><div class="dial-label">ELO Rating</div></div></div></div><div class="gauge-controls-side"><div class="dial-class-label">Engine class</div><div class="dial-class-value" id="dial-skill-label"></div><div class="dial-controls"><div class="dial-btn" onclick="dialAdj(-50)">−</div><div style="text-align:center"><div class="dial-hint">Drag needle or use ±</div><div class="dial-hint">Range 100 – 3000</div></div><div class="dial-btn" onclick="dialAdj(50)">+</div></div><div class="dial-meta">Set how fast the engine drives your opponent's car.</div></div></div></div><button class="modal-btn primary" onclick="applyS()" style="margin-top:12px">🏁 START RACE</button><div class="modal-btn secondary" onclick="closeModal()" style="text-align:center;cursor:pointer;border:none;background:none;color:var(--silver-dim);font-size:10px;letter-spacing:3px;margin-top:4px">Cancel</div>`;
   document.getElementById('modal-overlay').style.display='flex';
   tE=aiElo;tM=null;
   updEloVis();
@@ -406,18 +417,13 @@ function showSettings(){
   updDial();
 }
 function initDial(){
-  const svg=document.getElementById('dial-track');if(!svg)return;
-  const cx=110,cy=100,rad=75,startA=210,endA=-30;
-  let ticks='';const labels=['100','','600','','1200','','1800','','2400','','3000'];
-  for(let i=0;i<=10;i++){const frac=i/10;const ang=(startA+(endA-startA)*frac)*Math.PI/180;const x1=cx+rad*Math.cos(ang),y1=cy-rad*Math.sin(ang);const x2=cx+(rad-8)*Math.cos(ang),y2=cy-(rad-8)*Math.sin(ang);ticks+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#555" stroke-width="1.5"/>`;if(labels[i]){const tx=cx+(rad+12)*Math.cos(ang),ty=cy-rad*Math.sin(ang)+3;ticks+=`<text x="${tx}" y="${ty}" fill="#555" font-size="8" text-anchor="middle" font-family="Orbitron,monospace">${labels[i]}</text>`;}}
-  let arcPath='';const segs=60;
-  for(let i=0;i<segs;i++){const f1=i/segs,f2=(i+1)/segs;const a1=(startA+(endA-startA)*f1)*Math.PI/180;const a2=(startA+(endA-startA)*f2)*Math.PI/180;const r1=cx+(rad-3)*Math.cos(a1),s1=cy-(rad-3)*Math.sin(a1);const r2=cx+(rad-3)*Math.cos(a2),s2=cy-(rad-3)*Math.sin(a2);const hue=120-f1*120;arcPath+=`<line x1="${r1}" y1="${s1}" x2="${r2}" y2="${s2}" stroke="hsl(${hue},80%,45%)" stroke-width="4" stroke-linecap="round"/>`;}
-  svg.innerHTML=arcPath+ticks;
-  const wrap=document.getElementById('dial-wrap');
+  const wrap=document.getElementById('dial-wrap');if(!wrap)return;
   function onDrag(ex,ey){
     const rect=wrap.getBoundingClientRect();
-    const dx=ex-rect.left-rect.width/2;
-    const dy=-(ey-rect.top-rect.height*(100/130));
+    const cx=rect.left+rect.width/2;
+    const cy=rect.top+rect.height/2;
+    const dx=ex-cx;
+    const dy=-(ey-cy);
     let ang=Math.atan2(dy,dx)*180/Math.PI;
     if(ang<-30)ang=-30;if(ang>210)ang=210;
     const frac=(ang-210)/((-30)-210);
@@ -439,7 +445,7 @@ function updDial(){
   const valEl=document.getElementById('dial-value');
   if(valEl)valEl.textContent=elo;
   const lblEl=document.getElementById('dial-skill-label');
-  if(lblEl){const labels=['BEGINNER','NOVICE','CLUB','INTERMEDIATE','ADVANCED','EXPERT','MASTER'];const idx=Math.min(6,Math.floor(frac*7));lblEl.textContent=labels[idx];}
+  if(lblEl){const labels=['Beginner','Novice','Club','Intermediate','Advanced','Expert','Master'];const idx=Math.min(6,Math.floor(frac*7));lblEl.textContent=labels[idx]+' '+elo;}
 }
 function dialAdj(d){tE=Math.max(100,Math.min(3000,(tE||aiElo)+d));updDial();}
 function selMode(m){tM=m;document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));event.currentTarget.classList.add('active');updEloVis();}
