@@ -77,38 +77,38 @@ body::after{content:'';position:fixed;top:-100px;left:50%;transform:translateX(-
 .move-chip{background:var(--carbon-mid);border:1px solid var(--carbon-light);border-radius:4px;padding:4px 10px;font-family:'Barlow Condensed',sans-serif;font-size:12px;color:var(--silver-dim);white-space:nowrap;flex-shrink:0;letter-spacing:1px}
 .move-chip.latest{border-color:var(--ferrari-red);color:var(--ferrari-red);background:rgba(220,0,0,.08)}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(8px);padding:20px}
-.modal{background:linear-gradient(145deg,#101218,#050608);border:1px solid #2e323a;border-radius:22px;padding:22px 18px;width:100%;max-width:380px;text-align:center;box-shadow:0 14px 40px rgba(0,0,0,.85);animation:mu .3s cubic-bezier(.34,1.56,.64,1)}
+.modal{background:radial-gradient(circle at 0 0,rgba(243,201,79,.10),transparent 55%),radial-gradient(circle at 100% 100%,rgba(243,201,79,.10),transparent 55%),linear-gradient(145deg,#161922,#05070c);border:1px solid #2b303c;border-top:2px solid #f4c857;border-radius:24px;padding:26px 24px 22px;width:100%;max-width:380px;text-align:center;box-shadow:0 26px 70px rgba(0,0,0,.95);animation:mu .3s cubic-bezier(.34,1.56,.64,1)}
 @keyframes mu{from{transform:translateY(40px) scale(.9);opacity:0}to{transform:none;opacity:1}}
 .modal-icon{font-size:48px;margin-bottom:10px}
-.modal-title{font-family:'Orbitron',monospace;font-size:16px;font-weight:800;color:var(--white-hot);margin-bottom:4px;letter-spacing:4px;text-transform:uppercase}
-.modal-sub{font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--silver-dim);letter-spacing:3px;margin-bottom:18px;text-transform:uppercase}
+.modal-title{font-family:'Orbitron',monospace;font-size:20px;font-weight:800;letter-spacing:.32em;text-transform:uppercase;color:#f4c857;text-shadow:0 0 18px rgba(244,200,87,.55);margin-bottom:4px}
+.modal-sub{font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:#6f7480;margin-bottom:18px}
 .modal-btns{display:flex;flex-direction:column;gap:8px}
 .modal-btn{padding:13px;border-radius:999px;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:3px;font-weight:700;cursor:pointer;border:none;transition:all .2s;text-transform:uppercase}
-.modal-btn.primary{background:linear-gradient(135deg,#f3c64b,#f0b931);color:#000;box-shadow:0 12px 30px rgba(0,0,0,.9)}.modal-btn.primary:active{background:#f0b931}
-.modal-btn.secondary{background:transparent;border:1px solid #2b313d;color:var(--silver-dim);border-radius:999px}.modal-btn.secondary:active{border-color:var(--silver-dim);color:var(--white-hot)}
+.modal-btn.primary{margin-top:10px;border-radius:999px;background:linear-gradient(135deg,#f4c857,#d8a93a);color:#000;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:.26em;text-transform:uppercase;box-shadow:0 10px 26px rgba(244,200,87,.55)}.modal-btn.primary:active{background:#d8a93a}
+.modal-btn.secondary{margin-top:6px;border-radius:999px;background:transparent;border:1px solid #363b47;color:#7f8490}.modal-btn.secondary:active{border-color:var(--silver-dim);color:var(--white-hot)}
 .setting-group{text-align:left;margin-bottom:16px}
-.setting-label{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;color:var(--silver-dim);text-transform:uppercase;margin-bottom:8px}
+.setting-label{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:#5a5f6b;margin-bottom:8px}
 .elo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .elo-btn{padding:10px 4px;border-radius:6px;font-family:'Orbitron',monospace;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--carbon-light);background:var(--carbon);color:var(--silver-dim);transition:all .2s;text-align:center}
 .elo-btn.active{border-color:var(--ferrari-red);color:var(--ferrari-red);background:rgba(220,0,0,.1);box-shadow:0 0 10px rgba(220,0,0,.2)}
 .elo-btn:active{transform:scale(.95)}
 .dial-wrap{position:relative;width:220px;height:130px;margin:0 auto}
-.dial-needle{position:absolute;left:50%;bottom:23%;width:3px;height:65px;transform-origin:bottom center;background:#ffdd55;border-radius:2px;margin-left:-1.5px;transition:transform 0.05s linear;pointer-events:none}
-.dial-knob{position:absolute;width:20px;height:20px;border-radius:50%;background:#ffdd55;border:2px solid #000;top:-10px;left:50%;margin-left:-10px;box-shadow:0 2px 6px rgba(0,0,0,.5);pointer-events:none}
-.dial-hub{position:absolute;left:50%;bottom:23%;width:10px;height:10px;margin-left:-5px;margin-bottom:-5px;border-radius:50%;background:#333;border:1.5px solid #ffdd55;pointer-events:none;z-index:2}
-.dial-value{font-family:'Orbitron',monospace;font-size:28px;font-weight:800;color:#ffdd55;text-align:center;letter-spacing:2px;margin-top:8px}
-.dial-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--silver-dim);letter-spacing:3px;text-transform:uppercase;text-align:center}
+.dial-needle{position:absolute;left:50%;bottom:23%;width:3px;height:65px;transform-origin:bottom center;background:#f4c857;border-radius:2px;margin-left:-1.5px;transition:transform 0.05s linear;pointer-events:none}
+.dial-knob{position:absolute;width:20px;height:20px;border-radius:50%;background:#f4c857;border:2px solid #000;top:-10px;left:50%;margin-left:-10px;box-shadow:0 2px 6px rgba(0,0,0,.5);pointer-events:none}
+.dial-hub{position:absolute;left:50%;bottom:23%;width:10px;height:10px;margin-left:-5px;margin-bottom:-5px;border-radius:50%;background:#333;border:1.5px solid #f4c857;pointer-events:none;z-index:2}
+.dial-value{font-family:'Orbitron',monospace;font-size:30px;font-weight:800;color:#f4c857;letter-spacing:.18em;text-align:center;margin-top:8px}
+.dial-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:#777c88;text-align:center}
 .dial-controls{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:6px}
-.dial-btn{width:40px;height:40px;border-radius:999px;border:1px solid #2b313d;background:radial-gradient(circle at 30% 20%,rgba(255,255,255,.13),transparent 55%),#05070b;color:var(--silver);font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:'Orbitron',monospace}
-.dial-btn:active{border-color:#ffdd55;color:#ffdd55;transform:scale(.92)}
+.dial-btn{width:40px;height:40px;border-radius:999px;border:1px solid #373c48;background:radial-gradient(circle at 30% 20%,#2b313b 0,#05070b 70%);color:#ced2dd;font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:'Orbitron',monospace}
+.dial-btn:active{border-color:#f4c857;color:#f4c857;transform:scale(.92)}
 .dial-range{display:flex;justify-content:space-between;width:80px}
 .dial-range span{font-family:'Orbitron',monospace;font-size:8px;color:var(--silver-dim)}
-.dial-hint{font-family:'Barlow Condensed',sans-serif;font-size:9px;color:var(--silver-dim);letter-spacing:2px;text-transform:uppercase;opacity:.5;margin-top:2px;text-align:center}
+.dial-hint{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#656a76;margin-top:2px;text-align:center}
 .dial-meta{font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--silver-dim);letter-spacing:1px;margin-top:6px;text-align:center}
-.mode-row{display:flex;gap:10px;margin-bottom:12px}
-.mode-btn{flex:1;padding:10px 12px;border-radius:16px;font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;font-weight:700;cursor:pointer;border:1px solid #2c313d;background:radial-gradient(circle at 30% 15%,rgba(255,255,255,.08),transparent 40%),#10131b;color:var(--silver-dim);transition:all .2s;text-transform:uppercase;text-align:left;display:flex;flex-direction:column;gap:4px}
-.mode-btn .mode-icon{font-size:22px}
-.mode-btn.active{border-color:rgba(240,185,49,.33);color:var(--white-hot);background:radial-gradient(circle at 30% 15%,rgba(255,255,255,.15),transparent 40%),#201018}
+.mode-row{display:flex;gap:10px;margin-bottom:18px}
+.mode-btn{flex:1;padding:14px 10px;border-radius:18px;border:1px solid #363b47;background:radial-gradient(circle at 25% 15%,rgba(255,255,255,.10),transparent 60%),#070912;color:#a5aab5;text-transform:uppercase;letter-spacing:.18em;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;text-align:left;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.mode-btn .mode-icon{font-size:18px;margin-bottom:2px}
+.mode-btn.active{border-color:#f4c857;color:#fff;background:radial-gradient(circle at 20% 15%,rgba(244,200,87,.24),transparent 65%),#1b1014;box-shadow:0 0 18px rgba(244,200,87,.45)}
 .mode-pill{display:inline-block;align-self:flex-start;padding:3px 8px;border-radius:999px;font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;background:rgba(0,0,0,.55);color:var(--silver-dim)}
 .mode-meta{font-family:'Barlow Condensed',sans-serif;font-size:9px;color:var(--silver-dim);letter-spacing:1px}
 .promo-pieces{display:flex;justify-content:center;gap:10px;margin:14px 0}
