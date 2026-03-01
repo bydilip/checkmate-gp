@@ -640,18 +640,51 @@ RULES:
     for(const src of[leftOCR,rightOCR]){
       if(!src?.moves)continue;
       for(const m of src.moves){
-        if(m.whiteRaw)movesWithConf.push({san:m.whiteRaw,conf:m.whiteConf??0.5});
-        if(m.blackRaw)movesWithConf.push({san:m.blackRaw,conf:m.blackConf??0.5});
+        const wR=(m.whiteRaw||'').trim();
+        const bR=(m.blackRaw||'').trim();
+        if(wR)movesWithConf.push({san:wR,conf:m.whiteConf??0.5});
+        if(bR)movesWithConf.push({san:bR,conf:m.blackConf??0.5});
       }
     }
     const ocrNotes=[...(leftOCR?.notes||[]),...(rightOCR?.notes||[])];
 
-    // Truncate after checkmate: if any move ends with #, discard everything after it
-    const cmIdx=movesWithConf.findIndex(m=>m.san&&m.san.endsWith('#'));
+    // Filter out game results mistakenly included as moves
+    const isResult=s=>/^(1-0|0-1|1\/2-1\/2|½-½|\*)$/.test(s);
+    for(let fi=movesWithConf.length-1;fi>=0;fi--){
+      if(isResult(movesWithConf[fi].san))movesWithConf.splice(fi,1);
+    }
+
+    // Truncate after checkmate: if any move contains #, discard everything after it
+    const cmIdx=movesWithConf.findIndex(m=>m.san&&/\#/.test(m.san));
     if(cmIdx>=0&&cmIdx<movesWithConf.length-1){
       const dropped=movesWithConf.length-(cmIdx+1);
       movesWithConf.length=cmIdx+1;
       ocrNotes.push('Checkmate (#) detected at ply '+(cmIdx+1)+'; dropped '+dropped+' fabricated move'+(dropped>1?'s':'')+' after it');
+    }
+
+    // Detect and truncate fabricated move patterns
+    // 1. Impossible squares (rank 0 or 9) — e.g. Qf0, Nf9
+    const hasInvalidSquare=s=>/[a-h][09]/.test(s);
+    const firstBad=movesWithConf.findIndex(m=>hasInvalidSquare(m.san));
+    if(firstBad>=0){
+      const dropped=movesWithConf.length-firstBad;
+      movesWithConf.length=firstBad;
+      ocrNotes.push('Invalid square detected at ply '+(firstBad+1)+'; dropped '+dropped+' likely fabricated move'+(dropped>1?'s':''));
+    }
+
+    // 2. Repetitive patterns: if 6+ consecutive moves share the same san, truncate
+    if(movesWithConf.length>6){
+      for(let ri=0;ri<movesWithConf.length-5;ri++){
+        const s=movesWithConf[ri].san;
+        let run=1;
+        for(let rj=ri+1;rj<movesWithConf.length&&movesWithConf[rj].san===s;rj++)run++;
+        if(run>=6){
+          const dropped=movesWithConf.length-ri;
+          movesWithConf.length=ri;
+          ocrNotes.push('Detected '+run+' repeated "'+s+'" moves starting at ply '+(ri+1)+'; dropped '+dropped+' likely fabricated moves');
+          break;
+        }
+      }
     }
 
     if(!movesWithConf.length){
