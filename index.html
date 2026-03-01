@@ -597,6 +597,8 @@ RULES:
 - whiteRaw/blackRaw: exactly what you see, including x, +, #, ?, etc.
 - If a move is unreadable, set it to null and explain in notes.
 - If a row has a game result (1-0, 0-1, 1/2) instead of a move, skip it and note it.
+- STOP reading when you reach blank/empty rows. Do NOT invent or fabricate moves for empty rows.
+- If the last move has a checkmate symbol (#), that is the end of the game — do NOT read beyond it.
 - Castling: write as O-O or O-O-O regardless of how the child wrote it (0-0, oo, etc.)
 - Do NOT try to enforce legality or fix notation.
 - Do NOT output PGN, text, or commentary outside this JSON.`;
@@ -758,7 +760,7 @@ async function validateAndCorrectMoves(movesWithConf,headers,ocrNotes,statusCb){
   // Save global state
   const sb=board.map(r=>[...r]),st=turn,sc={...cast},se=epT;
   initB();let cb=board.map(r=>[...r]),cc={wK:1,wQ:1,bK:1,bQ:1},ce=null,ct='w';
-  let corrected=[...moves],corrections=[],maxFix=10,fixes=0;
+  let corrected=[...moves],corrections=[],maxFix=10,fixes=0,gameEndResult=null;
 
   for(let i=0;i<moves.length;i++){
     board=cb.map(r=>[...r]);cast={...cc};epT=ce;
@@ -787,20 +789,44 @@ async function validateAndCorrectMoves(movesWithConf,headers,ocrNotes,statusCb){
     const pr=mv._pr||(mv.promotion?'Q':null);if(mv._pr)delete mv._pr;
     ce=mv.doublePush?[co==='w'?mv.to[0]+1:mv.to[0]-1,mv.to[1]]:null;
     cb=aM(mv,board,pr);ct=ct==='w'?'b':'w';
+
+    // Check if game is over (checkmate or stalemate) — stop processing further moves
+    board=cb.map(r=>[...r]);cast={...cc};epT=ce;
+    const nextLegal=aL(ct,cb);
+    if(!nextLegal.length){
+      const inCheck=iC(ct,cb);
+      if(inCheck){
+        gameEndResult=ct==='w'?'0-1':'1-0';
+        if(statusCb)statusCb('Checkmate detected at move '+(Math.floor(i/2)+1)+'!');
+      }else{
+        gameEndResult='1/2-1/2';
+        if(statusCb)statusCb('Stalemate detected at move '+(Math.floor(i/2)+1));
+      }
+      // Truncate: keep only moves up to and including this one
+      corrected=corrected.slice(0,i+1);
+      const dropped=moves.length-(i+1);
+      if(dropped>0)corrections.push({i:i+1,was:'('+dropped+' fabricated move'+(dropped>1?'s':'')+' removed)',now:null,info:true});
+      break;
+    }
   }
 
   // Restore global state
   board=sb;turn=st;cast=sc;epT=se;
 
   // Rebuild PGN
-  let hdr='';for(const[k,v]of Object.entries(headers))hdr+='['+k+' "'+v+'"]\n';
+  let hdr='';
+  if(gameEndResult)headers.Result=gameEndResult;
+  for(const[k,v]of Object.entries(headers))hdr+='['+k+' "'+v+'"]\n';
   let mt='';for(let i=0;i<corrected.length;i++){if(i%2===0)mt+=(i>0?' ':'')+((i/2)+1)+'. ';else mt+=' ';mt+=corrected[i];}
+  if(gameEndResult)mt+=' '+gameEndResult;
   if(corrections.length){
-    const applied=corrections.filter(c=>corrected[c.i]!==moves[c.i]);
-    const unresolved=corrections.filter(c=>corrected[c.i]===moves[c.i]);
+    const applied=corrections.filter(c=>!c.info&&corrected[c.i]!==moves[c.i]);
+    const unresolved=corrections.filter(c=>!c.info&&corrected[c.i]===moves[c.i]);
+    const infos=corrections.filter(c=>c.info);
     let notes=[];
     if(applied.length)notes.push('Fixed: '+applied.map(c=>{const mn=Math.floor(c.i/2)+1;const s=c.i%2===0?'':'...';return mn+s+'. '+c.was+' → '+c.now;}).join(', '));
     if(unresolved.length)notes.push('Unresolved: '+unresolved.map(c=>{const mn=Math.floor(c.i/2)+1;const s=c.i%2===0?'':'...';return mn+s+'. '+c.was+(c.now?' (AI suggested: '+c.now+')':'');}).join(', '));
+    if(infos.length)notes.push(infos.map(c=>c.was).join('; '));
     mt+='\n{ AI: '+notes.join(' | ')+' }';
   }
   if(ocrNotes.length)mt+='\n{ OCR notes: '+ocrNotes.join('; ')+' }';
