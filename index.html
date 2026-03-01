@@ -15,11 +15,11 @@ body::after{content:'';position:fixed;top:-100px;left:50%;transform:translateX(-
 .app{width:100%;max-width:480px;position:relative;z-index:1}
 .header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 6px}
 .logo-area{display:flex;align-items:center;gap:10px}
-.shield{width:44px;height:44px;background:linear-gradient(135deg,var(--ferrari-red),var(--ferrari-dark));border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 12px rgba(212,175,55,.25)}
+.shield{width:38px;height:38px;background:linear-gradient(135deg,var(--ferrari-red),var(--ferrari-dark));border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 12px rgba(212,175,55,.25)}
 .shield::after{content:'♞';font-size:22px;color:var(--carbon)}
 .logo-text{font-family:'Orbitron',monospace;font-weight:800;font-size:18px;letter-spacing:2px;color:var(--ferrari-red);text-shadow:0 0 30px rgba(212,175,55,.25);line-height:1}
 .logo-sub{font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:5px;color:var(--silver-dim);text-transform:uppercase;margin-top:2px}
-.btn-icon{background:var(--carbon-mid);border:1px solid var(--carbon-light);color:var(--silver-dim);width:44px;height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;transition:all .2s}
+.btn-icon{background:var(--carbon-mid);border:1px solid var(--carbon-light);color:var(--silver-dim);width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all .2s}
 .btn-icon:active{border-color:var(--ferrari-red);color:var(--ferrari-red)}
 .engine-status{text-align:center;padding:2px 16px 4px;font-family:'Orbitron',monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;transition:opacity .5s}
 .engine-status.loading{color:var(--scuderia-yellow)}.engine-status.ready{color:var(--drs-green)}.engine-status.fallback{color:var(--ferrari-red)}
@@ -29,7 +29,7 @@ body::after{content:'';position:fixed;top:-100px;left:50%;transform:translateX(-
 .player-panel{display:flex;align-items:center;padding:8px 16px;gap:10px;transition:all .3s}
 .black-panel{background:linear-gradient(135deg,rgba(20,20,20,.9),rgba(10,10,10,.95));border-bottom:1px solid var(--carbon-light)}
 .white-panel{background:linear-gradient(135deg,rgba(20,20,20,.9),rgba(10,10,10,.95));border-top:1px solid var(--carbon-light)}
-.player-avatar{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid var(--carbon-light);transition:all .3s;flex-shrink:0}
+.player-avatar{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid var(--carbon-light);transition:all .3s;flex-shrink:0}
 .black-panel .player-avatar{background:var(--carbon-mid)}.white-panel .player-avatar{background:var(--carbon-mid)}
 .player-panel.active .player-avatar{border-color:var(--ferrari-red);box-shadow:0 0 14px rgba(212,175,55,.25)}
 .player-info{flex:1;min-width:0}
@@ -60,14 +60,14 @@ body::after{content:'';position:fixed;top:-100px;left:50%;transform:translateX(-
 .piece{position:relative;z-index:2;width:82%;height:82%;display:flex;align-items:center;justify-content:center;transition:transform .15s cubic-bezier(.34,1.56,.64,1);pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
 .piece svg{width:100%;height:100%;display:block}.square.selected .piece{transform:scale(1.18)}
 .status-bar{width:100%;padding:8px 16px;display:flex;align-items:center;justify-content:center;min-height:40px;position:relative}
-.explore-toggle{position:absolute;right:16px;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:1px solid var(--carbon-light);background:var(--carbon-mid);color:var(--silver-dim);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.explore-toggle{position:absolute;right:16px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;border:1px solid var(--carbon-light);background:var(--carbon-mid);color:var(--silver-dim);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
 .explore-toggle:active,.explore-toggle.active{border-color:var(--ferrari-red);color:var(--ferrari-red);background:rgba(220,0,0,.1);box-shadow:0 0 10px rgba(220,0,0,.15)}
 .status-text{font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:3px;text-transform:uppercase;color:var(--silver-dim)}
 .status-badge{font-family:'Orbitron',monospace;background:var(--ferrari-red);color:var(--carbon);font-size:10px;font-weight:700;letter-spacing:2px;padding:5px 16px;border-radius:4px;text-transform:uppercase;animation:bp .3s cubic-bezier(.34,1.56,.64,1)}
 .status-badge.check{background:var(--ferrari-glow)}.status-badge.thinking{background:var(--carbon-mid);border:1px solid var(--ferrari-red);color:var(--ferrari-red)}
 @keyframes bp{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
 .controls{width:100%;padding:4px 16px 12px;display:flex;gap:8px}
-.btn{flex:1;background:var(--carbon-mid);border:1px solid var(--carbon-light);color:var(--silver-dim);font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:600;padding:10px 6px;border-radius:8px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center}
+.btn{flex:1;background:var(--carbon-mid);border:1px solid var(--carbon-light);color:var(--silver-dim);font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:600;padding:10px 6px;border-radius:8px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:3px}
 .btn:active{border-color:var(--ferrari-red);color:var(--ferrari-red);background:rgba(220,0,0,.1)}
 .btn .be{font-size:16px}
 .btn.primary{background:linear-gradient(135deg,var(--ferrari-red),var(--ferrari-dark));border-color:var(--ferrari-dark);color:var(--carbon);font-weight:700;box-shadow:0 4px 16px rgba(212,175,55,.15)}.btn.primary:active{background:var(--ferrari-dark)}
@@ -83,13 +83,13 @@ body::after{content:'';position:fixed;top:-100px;left:50%;transform:translateX(-
 .modal-title{font-family:'Orbitron',monospace;font-size:22px;font-weight:800;color:var(--ferrari-red);margin-bottom:6px;letter-spacing:2px}
 .modal-sub{font-family:'Barlow Condensed',sans-serif;font-size:13px;color:var(--silver-dim);letter-spacing:2px;margin-bottom:20px;text-transform:uppercase}
 .modal-btns{display:flex;flex-direction:column;gap:8px}
-.modal-btn{padding:13px;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:3px;font-weight:700;cursor:pointer;border:none;transition:all .2s;text-transform:uppercase;min-height:44px}
+.modal-btn{padding:13px;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:3px;font-weight:700;cursor:pointer;border:none;transition:all .2s;text-transform:uppercase}
 .modal-btn.primary{background:linear-gradient(135deg,var(--ferrari-red),var(--ferrari-dark));color:var(--carbon);box-shadow:0 4px 16px rgba(212,175,55,.15)}.modal-btn.primary:active{background:var(--ferrari-dark)}
 .modal-btn.secondary{background:transparent;border:1px solid var(--carbon-light);color:var(--silver-dim)}.modal-btn.secondary:active{border-color:var(--silver-dim);color:var(--white-hot)}
 .setting-group{text-align:left;margin-bottom:16px}
 .setting-label{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:3px;color:var(--silver-dim);text-transform:uppercase;margin-bottom:8px}
 .elo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.elo-btn{padding:10px 4px;border-radius:6px;font-family:'Orbitron',monospace;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--carbon-light);background:var(--carbon);color:var(--silver-dim);transition:all .2s;text-align:center;min-height:44px;display:flex;align-items:center;justify-content:center}
+.elo-btn{padding:10px 4px;border-radius:6px;font-family:'Orbitron',monospace;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--carbon-light);background:var(--carbon);color:var(--silver-dim);transition:all .2s;text-align:center}
 .elo-btn.active{border-color:var(--ferrari-red);color:var(--ferrari-red);background:rgba(220,0,0,.1);box-shadow:0 0 10px rgba(220,0,0,.2)}
 .elo-btn:active{transform:scale(.95)}
 .dial-wrap{position:relative;width:220px;height:130px;margin:0 auto}
@@ -99,13 +99,13 @@ body::after{content:'';position:fixed;top:-100px;left:50%;transform:translateX(-
 .dial-value{font-family:'Orbitron',monospace;font-size:28px;font-weight:800;color:var(--ferrari-red);text-align:center;letter-spacing:2px;margin-top:8px}
 .dial-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--silver-dim);letter-spacing:3px;text-transform:uppercase;text-align:center}
 .dial-controls{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:6px}
-.dial-btn{width:44px;height:44px;border-radius:50%;border:1px solid var(--carbon-light);background:var(--carbon);color:var(--silver);font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:'Orbitron',monospace}
+.dial-btn{width:40px;height:40px;border-radius:50%;border:1px solid var(--carbon-light);background:var(--carbon);color:var(--silver);font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:'Orbitron',monospace}
 .dial-btn:active{border-color:var(--ferrari-red);color:var(--ferrari-red);transform:scale(.92)}
 .dial-range{display:flex;justify-content:space-between;width:80px}
 .dial-range span{font-family:'Orbitron',monospace;font-size:8px;color:var(--silver-dim)}
 .dial-hint{font-family:'Barlow Condensed',sans-serif;font-size:9px;color:var(--silver-dim);letter-spacing:2px;text-transform:uppercase;opacity:.5;margin-top:2px;text-align:center}
 .mode-row{display:flex;gap:8px;margin-bottom:12px}
-.mode-btn{flex:1;padding:14px 8px;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:2px;font-weight:700;cursor:pointer;border:1px solid var(--carbon-light);background:var(--carbon);color:var(--silver-dim);transition:all .2s;text-transform:uppercase;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;min-height:44px;justify-content:center}
+.mode-btn{flex:1;padding:14px 8px;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:2px;font-weight:700;cursor:pointer;border:1px solid var(--carbon-light);background:var(--carbon);color:var(--silver-dim);transition:all .2s;text-transform:uppercase;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px}
 .mode-btn .mode-icon{font-size:22px}.mode-btn.active{border-color:var(--ferrari-red);color:var(--white-hot);background:rgba(220,0,0,.12)}
 .promo-pieces{display:flex;justify-content:center;gap:10px;margin:14px 0}
 .promo-piece{width:60px;height:60px;cursor:pointer;background:var(--carbon);border:1px solid var(--carbon-light);border-radius:10px;padding:8px;display:flex;align-items:center;justify-content:center;transition:all .2s}
@@ -115,7 +115,7 @@ body::after{content:'';position:fixed;top:-100px;left:50%;transform:translateX(-
 .replay-bar{padding:8px 16px;text-align:center}
 .replay-info{font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--silver-dim);letter-spacing:1px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .replay-controls{display:flex;justify-content:center;gap:8px;margin:8px 0}
-.replay-btn{width:44px;height:44px;border-radius:50%;border:1px solid var(--carbon-light);background:var(--carbon);color:var(--silver);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.replay-btn{width:42px;height:42px;border-radius:50%;border:1px solid var(--carbon-light);background:var(--carbon);color:var(--silver);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .replay-btn:active{border-color:var(--ferrari-red);color:var(--ferrari-red)}
 .replay-btn.active{border-color:var(--ferrari-red);color:var(--ferrari-red);background:rgba(220,0,0,.12)}
 .replay-move-label{font-family:'Orbitron',monospace;font-size:11px;color:var(--ferrari-red);letter-spacing:2px;text-align:center}
@@ -128,7 +128,7 @@ body::after{content:'';position:fixed;top:-100px;left:50%;transform:translateX(-
 .explore-panel{padding:8px 16px}.explore-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .explore-title{font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;color:var(--ferrari-red);text-transform:uppercase}
 .explore-depth-row{display:flex;align-items:center;gap:4px}.explore-depth-label{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:2px;color:var(--silver-dim)}
-.explore-dbtn{width:44px;height:44px;border-radius:50%;border:1px solid var(--carbon-light);background:var(--carbon);color:var(--silver);font-family:'Orbitron',monospace;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.explore-dbtn{width:26px;height:26px;border-radius:50%;border:1px solid var(--carbon-light);background:var(--carbon);color:var(--silver);font-family:'Orbitron',monospace;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .explore-dbtn.active{border-color:var(--ferrari-red);color:var(--ferrari-red);background:rgba(220,0,0,.12)}
 .explore-tree-wrap{max-height:280px;overflow-y:auto;scrollbar-width:thin;margin:4px 0}
 .explore-node{padding:3px 0 3px 14px;cursor:pointer;border-left:2px solid var(--carbon-light);transition:background .15s}.explore-node:hover{background:rgba(255,255,255,.03)}
