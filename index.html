@@ -597,8 +597,8 @@ RULES:
 - whiteRaw/blackRaw: exactly what you see, including x, +, #, ?, etc.
 - If a move is unreadable, set it to null and explain in notes.
 - If a row has a game result (1-0, 0-1, 1/2) instead of a move, skip it and note it.
-- STOP reading when you reach blank/empty rows. Do NOT invent or fabricate moves for empty rows.
-- If the last move has a checkmate symbol (#), that is the end of the game — do NOT read beyond it.
+- SKIP blank/empty rows — do NOT invent or fabricate moves for them. But KEEP reading subsequent rows that have actual handwritten moves.
+- If the last written move has a checkmate symbol (#), that is the end of the game — do NOT read beyond it.
 - Castling: write as O-O or O-O-O regardless of how the child wrote it (0-0, oo, etc.)
 - Do NOT try to enforce legality or fix notation.
 - Do NOT output PGN, text, or commentary outside this JSON.`;
