@@ -598,7 +598,8 @@ RULES:
 - If a move is unreadable, set it to null and explain in notes.
 - If a row has a game result (1-0, 0-1, 1/2) instead of a move, skip it and note it.
 - SKIP blank/empty rows — do NOT invent or fabricate moves for them. But KEEP reading subsequent rows that have actual handwritten moves.
-- If the last written move has a checkmate symbol (#), that is the end of the game — do NOT read beyond it.
+- CRITICAL: If a move has a checkmate symbol (#), that is the FINAL move of the game. Do NOT output any moves after it.
+- CRITICAL: If most or all rows are blank/empty, return an EMPTY moves array: {"moves":[],"notes":["Page is blank"]}. Do NOT fabricate moves for a blank page.
 - Castling: write as O-O or O-O-O regardless of how the child wrote it (0-0, oo, etc.)
 - Do NOT try to enforce legality or fix notation.
 - Do NOT output PGN, text, or commentary outside this JSON.`;
@@ -644,6 +645,14 @@ RULES:
       }
     }
     const ocrNotes=[...(leftOCR?.notes||[]),...(rightOCR?.notes||[])];
+
+    // Truncate after checkmate: if any move ends with #, discard everything after it
+    const cmIdx=movesWithConf.findIndex(m=>m.san&&m.san.endsWith('#'));
+    if(cmIdx>=0&&cmIdx<movesWithConf.length-1){
+      const dropped=movesWithConf.length-(cmIdx+1);
+      movesWithConf.length=cmIdx+1;
+      ocrNotes.push('Checkmate (#) detected at ply '+(cmIdx+1)+'; dropped '+dropped+' fabricated move'+(dropped>1?'s':'')+' after it');
+    }
 
     if(!movesWithConf.length){
       showPGNUpload();
