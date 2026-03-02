@@ -1,41 +1,37 @@
 #!/usr/bin/env python3
-"""Generate Checkmate GP app icons: dark bg, gold rounded rect, gold knight."""
+"""Generate Checkmate GP app icons: gold gradient bg, black knight."""
 
 from PIL import Image, ImageDraw
 
-GOLD = (212, 175, 55)        # #D4AF37
-DARK_GOLD = (154, 123, 44)
-WHITE_GOLD = (245, 208, 96)
+GOLD_LIGHT = (212, 175, 55)   # #D4AF37
+GOLD_DARK = (154, 123, 44)    # #9A7B2C
 BLACK = (0, 0, 0)
-CARBON = (10, 10, 10)        # inner fill of rounded rect
 
 
-def draw_rounded_rect(draw, x0, y0, x1, y1, radius, fill=None, outline=None, width=1):
-    """Draw a rounded rectangle."""
-    if fill:
-        # Fill the main body
-        draw.rectangle([x0 + radius, y0, x1 - radius, y1], fill=fill)
-        draw.rectangle([x0, y0 + radius, x1, y1 - radius], fill=fill)
-        # Fill the four corners
-        draw.pieslice([x0, y0, x0 + 2 * radius, y0 + 2 * radius], 180, 270, fill=fill)
-        draw.pieslice([x1 - 2 * radius, y0, x1, y0 + 2 * radius], 270, 360, fill=fill)
-        draw.pieslice([x0, y1 - 2 * radius, x0 + 2 * radius, y1], 90, 180, fill=fill)
-        draw.pieslice([x1 - 2 * radius, y1 - 2 * radius, x1, y1], 0, 90, fill=fill)
-    if outline:
-        # Draw the outline arcs and lines
-        draw.arc([x0, y0, x0 + 2 * radius, y0 + 2 * radius], 180, 270, fill=outline, width=width)
-        draw.arc([x1 - 2 * radius, y0, x1, y0 + 2 * radius], 270, 360, fill=outline, width=width)
-        draw.arc([x0, y1 - 2 * radius, x0 + 2 * radius, y1], 90, 180, fill=outline, width=width)
-        draw.arc([x1 - 2 * radius, y1 - 2 * radius, x1, y1], 0, 90, fill=outline, width=width)
-        draw.line([x0 + radius, y0, x1 - radius, y0], fill=outline, width=width)
-        draw.line([x0 + radius, y1, x1 - radius, y1], fill=outline, width=width)
-        draw.line([x0, y0 + radius, x0, y1 - radius], fill=outline, width=width)
-        draw.line([x1, y0 + radius, x1, y1 - radius], fill=outline, width=width)
+def draw_rounded_rect_mask(size, radius):
+    """Create a rounded-rectangle alpha mask."""
+    mask = Image.new('L', (size, size), 0)
+    d = ImageDraw.Draw(mask)
+    d.rounded_rectangle([0, 0, size - 1, size - 1], radius=radius, fill=255)
+    return mask
+
+
+def gold_gradient(size):
+    """Create a 135-degree gold gradient matching the CSS shield."""
+    img = Image.new('RGB', (size, size))
+    for y in range(size):
+        for x in range(size):
+            # 135-degree gradient: top-left -> bottom-right
+            t = (x + y) / (2 * size - 2)
+            r = int(GOLD_LIGHT[0] + (GOLD_DARK[0] - GOLD_LIGHT[0]) * t)
+            g = int(GOLD_LIGHT[1] + (GOLD_DARK[1] - GOLD_LIGHT[1]) * t)
+            b = int(GOLD_LIGHT[2] + (GOLD_DARK[2] - GOLD_LIGHT[2]) * t)
+            img.putpixel((x, y), (r, g, b))
+    return img
 
 
 def get_knight_points(cx, cy, scale):
     """Return a refined chess knight silhouette."""
-    # More refined knight shape on 0-100 canvas
     raw = [
         # Base (flat bottom)
         (28, 88), (72, 88),
@@ -79,51 +75,41 @@ def get_knight_points(cx, cy, scale):
 
 
 def create_icon(size, filename):
-    """Create icon: black bg, gold rounded rect border, gold knight."""
+    """Create icon: gold gradient rounded rect, black knight."""
+    # Start with black background
     img = Image.new('RGB', (size, size), BLACK)
-    draw = ImageDraw.Draw(img)
 
-    # Rounded rectangle
-    margin = int(size * 0.12)
-    border_w = max(2, int(size * 0.014))
-    corner_r = int(size * 0.14)
+    # Create gold gradient rounded rect
+    margin = int(size * 0.08)
+    inner_size = size - 2 * margin
+    corner_r = int(inner_size * 0.22)
 
-    # Fill the rounded rect with dark carbon
-    draw_rounded_rect(draw,
-                      margin, margin, size - margin, size - margin,
-                      corner_r, fill=CARBON)
+    grad = gold_gradient(inner_size)
+    mask = draw_rounded_rect_mask(inner_size, corner_r)
+    img.paste(grad, (margin, margin), mask)
 
-    # Gold border
-    for i in range(border_w):
-        draw_rounded_rect(draw,
-                          margin - i, margin - i,
-                          size - margin + i, size - margin + i,
-                          corner_r + i, outline=GOLD, width=1)
-
-    # Knight
+    # Black knight
     center = size / 2
     knight_scale = size * 0.30
     knight_cy = center + size * 0.01
     points = get_knight_points(center, knight_cy, knight_scale)
 
-    # Dark outline for depth
-    outline_w = max(2, int(size * 0.012))
-    for dx in range(-outline_w, outline_w + 1):
-        for dy in range(-outline_w, outline_w + 1):
-            if dx * dx + dy * dy <= outline_w * outline_w:
-                shifted = [(x + dx, y + dy) for x, y in points]
-                draw.polygon(shifted, fill=DARK_GOLD)
+    draw = ImageDraw.Draw(img)
+    draw.polygon(points, fill=BLACK)
 
-    # Main gold body
-    draw.polygon(points, fill=GOLD)
-
-    # Eye
+    # Eye (gold, since knight is black)
     eye_x = center - knight_scale * 0.10
     eye_y = knight_cy - knight_scale * 0.30
-    eye_r = max(2, int(size * 0.016))
+    eye_r = max(2, int(size * 0.014))
+    # Midpoint gold for the eye
+    mid_gold = (
+        (GOLD_LIGHT[0] + GOLD_DARK[0]) // 2,
+        (GOLD_LIGHT[1] + GOLD_DARK[1]) // 2,
+        (GOLD_LIGHT[2] + GOLD_DARK[2]) // 2,
+    )
     draw.ellipse(
         [eye_x - eye_r, eye_y - eye_r, eye_x + eye_r, eye_y + eye_r],
-        fill=CARBON
+        fill=mid_gold
     )
 
     img.save(filename, 'PNG')
@@ -133,42 +119,35 @@ def create_icon(size, filename):
 def create_maskable_icon(size, filename):
     """Maskable icon — content within inner 80% safe zone."""
     img = Image.new('RGB', (size, size), BLACK)
-    draw = ImageDraw.Draw(img)
 
     # Larger margin for maskable safe zone
-    margin = int(size * 0.18)
-    border_w = max(2, int(size * 0.014))
-    corner_r = int(size * 0.12)
+    margin = int(size * 0.16)
+    inner_size = size - 2 * margin
+    corner_r = int(inner_size * 0.22)
 
-    draw_rounded_rect(draw,
-                      margin, margin, size - margin, size - margin,
-                      corner_r, fill=CARBON)
-    for i in range(border_w):
-        draw_rounded_rect(draw,
-                          margin - i, margin - i,
-                          size - margin + i, size - margin + i,
-                          corner_r + i, outline=GOLD, width=1)
+    grad = gold_gradient(inner_size)
+    mask = draw_rounded_rect_mask(inner_size, corner_r)
+    img.paste(grad, (margin, margin), mask)
 
     center = size / 2
     knight_scale = size * 0.24
     knight_cy = center + size * 0.01
     points = get_knight_points(center, knight_cy, knight_scale)
 
-    outline_w = max(2, int(size * 0.012))
-    for dx in range(-outline_w, outline_w + 1):
-        for dy in range(-outline_w, outline_w + 1):
-            if dx * dx + dy * dy <= outline_w * outline_w:
-                shifted = [(x + dx, y + dy) for x, y in points]
-                draw.polygon(shifted, fill=DARK_GOLD)
-
-    draw.polygon(points, fill=GOLD)
+    draw = ImageDraw.Draw(img)
+    draw.polygon(points, fill=BLACK)
 
     eye_x = center - knight_scale * 0.10
     eye_y = knight_cy - knight_scale * 0.30
-    eye_r = max(2, int(size * 0.014))
+    eye_r = max(2, int(size * 0.012))
+    mid_gold = (
+        (GOLD_LIGHT[0] + GOLD_DARK[0]) // 2,
+        (GOLD_LIGHT[1] + GOLD_DARK[1]) // 2,
+        (GOLD_LIGHT[2] + GOLD_DARK[2]) // 2,
+    )
     draw.ellipse(
         [eye_x - eye_r, eye_y - eye_r, eye_x + eye_r, eye_y + eye_r],
-        fill=CARBON
+        fill=mid_gold
     )
 
     img.save(filename, 'PNG')
