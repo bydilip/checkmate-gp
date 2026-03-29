@@ -789,7 +789,7 @@ FORMAT:
 - Respond with ONLY the corrected move in standard algebraic notation (SAN), e.g. Nf3, Rxe5+, Qb7#.
 - Do NOT include move numbers, explanations, or any other text.`;
   try{
-    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'gpt-5.4-mini',temperature:0,max_completion_tokens:60,messages:[{role:'user',content:prompt}]})});
+    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'gpt-5.4',temperature:0.1,max_completion_tokens:60,messages:[{role:'user',content:prompt}]})});
     if(!res.ok)return null;const data=await res.json();
     const raw=(data.choices?.[0]?.message?.content||'').trim();
     // Match response against known legal moves (handles markdown, extra text, etc.)
